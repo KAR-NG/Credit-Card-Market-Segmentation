@@ -1,0 +1,93 @@
+---
+title: "cc_cluster"
+author: "Kar Ng"
+date: '2022-05'
+output: 
+  github_document: 
+    toc: true
+    toc_depth: 4
+always_allow_html: yes
+---
+
+
+## R PACKAGES
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+library(skimr)
+
+```
+
+
+## INTRODUCTION
+
+This project will use clustering technique to develop a customer segmentation to define marketing strategy. 
+
+Dataset used in this project is called "Credit Card Dataset for Clustering" by Arjun Bhasin. It is a public dataset acquired from [Kaggle.com](https://www.kaggle.com/datasets/arjunbhasin2013/ccdata).
+
+The dataset summarises the usage behavior of about 
+
+## DATA PREPARATION
+
+### Data Import
+
+Following codes import the dataset and specify the first column as row's name, as it is required to perform clustering. 
+
+```{r}
+cc <- read.csv("cc_dataset.csv",
+               header = T,
+               row.names = 1)   # specificy column 1 as row name 
+
+```
+
+randomly sample the first 10 rows of the dataset. 
+
+```{r}
+sample_n(cc, 10)
+
+```
+
+### Data Description
+
+
+
+```{r}
+
+Variables <- c("CUSTID", "BALANCE", "BALANCEFREQUENCY", "PURCHASES", "ONEOFFPURCHASES",
+               "INSTALLMENTSPURCHASES", "CASHADVANCE", "PURCHASESFREQUENCY", "ONEOFFPURCHASESFREQUENCY", "PURCHASESINSTALLMENTSFREQUENCY", "CASHADVANCEFREQUENCY", "CASHADVANCETRX", "PURCHASESTRX", "CREDITLIMIT", "PAYMENTS", "MINIMUM_PAYMENTS", "PRCFULLPAYMENT", "TENURE")
+
+Description <- c("Identification of Credit Card holder (Categorical)",
+                 "Balance amount left in their account to make purchases",
+                 "How frequently the Balance is updated, score between 0 and 1 (1 = frequently updated, 0 = not frequently updated)",
+                 "Amount of purchases made from account",
+                 "Maximum purchase amount done in one-go",
+                 "Amount of purchase done in installment",
+                 "Cash in advance given by the user",
+                 "How frequently the Purchases are being made, score between 0 and 1 (1 = frequently purchased, 0 = not frequently purchased)",
+                 "How frequently Purchases are happening in one-go (1 = frequently purchased, 0 = not frequently purchased)",
+                 "How frequently purchases in installments are being done (1 = frequently done, 0 = not frequently done)",
+                 "How frequently the cash in advance being paid",
+                 "Number of Transactions made with Cash in Advanced",
+                 "Number of purchase transactions made",
+                 "Limit of Credit Card for user",
+                 "Amount of Payment done by user",
+                 "Minimum amount of payments made by user",
+                 "Percent of full payment paid by user",
+                 "Tenure of credit card service for user")
+
+
+data.frame(Variables, Description) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = c("bordered", "stripped"))
+
+```
+
+
+
+### Data Exploration
+
+
+## Unsupervised Clustering
+
+
