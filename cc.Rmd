@@ -1,5 +1,5 @@
 ---
-title: "cc_cluster"
+title: "Credit card Market Segmentation by Clustering"
 author: "Kar Ng"
 date: '2022-05'
 output: 
@@ -48,6 +48,14 @@ sample_n(cc, 10)
 
 ```
 
+The name of all variables are:
+
+```{r}
+names(cc)
+
+```
+
+
 ### Data Description
 
 Following is the data description extracted from the kaggle website.
@@ -85,17 +93,94 @@ data.frame(Variables, Description) %>%
 
 ### Data Exploration
 
-The dataset contain 8950 rows and 17 variables. The "dbl" and "ind" are data type allocated by R to a particular column. The "dbl" stands for "double", it is used for numerical variables that have decimal places. The "int" stands for integer, it is used for numerical variables that have integer values. 
+**Data Size and type**
+
+The dataset contain 8950 rows and 17 variables. The "dbl" and "ind" are data type allocated by R to a particular column. The "dbl" stands for "double", it is used for numerical variables that have decimal places. The "int" stands for integer, it is used for numerical variables that have integer values. All variables are numeric with either "dbl" and "int", they will be treated the same type during analysis.
 
 ```{r}
 glimpse(cc)
 
 ```
+**Purchases**
+
+During exploration, I found that "PURCHASES" is the sum of "ONEOFF_PURCHASES" and "INSTALLMENTS_PURCHASES". It may not be important in this analysis.
+
+Following select 10 rows among the dataset, and the new variable "MY_PURCHASES" proves my finding, which is the same as the "PURCHASES", and is the sum of "ONEOFF_PURCHASES" and "INSTALLMENTS_PURCHASES".
 
 ```{r}
-summary(cc)
+cc %>% 
+  top_n(10, BALANCE) %>% 
+  dplyr::select(ONEOFF_PURCHASES, INSTALLMENTS_PURCHASES, PURCHASES) %>% 
+  mutate(MY_PURCHASES = ONEOFF_PURCHASES + INSTALLMENTS_PURCHASES)
+
 ```
- 
+
+**Missing values check**
+
+Again, proven by other function that the tables have 8950 rows of data and 17 variables. All variables are numerical, and, by examining the variables "n_missing" and "complete_rate" in following tables, there is 1 missing value in the variable "CREDIT_LIMIT" and 313 in the "MINIMUM_PAYMENTS". These missing values need to be handled. 
+
+```{r}
+skim_without_charts(cc)
+
+```
+Alternatively, following code performs the missing-value check.
+
+```{r}
+colSums(is.na(cc))
+
+```
+There are 8950 rows of data and I will still have 96.5% of data left after removal of these missing values and therefore I will simply remove these missing values for the simplicity of this project.
+
+Typically, missing value can be handled by either removal, replaced with mean, median, or using imputation algorithm such as KNN or bagging algorithm. These techniques are usually performed when there are too many missing values in important variables. For example, when missing values is higher than 5% and less than 60%. 
+
+
+## DATA CLEANING
+
+### Rename all variables
+
+The name of all variables are in capital form and which would be difficult to read for readers and also myself.
+
+```{r}
+colnames(cc)
+```
+Following code transforms all the name into reading-friendly form. 
+
+```{r}
+cc <- cc %>% 
+  rename_all(str_to_sentence)
+
+```
+
+Checking again the name of each variable.
+
+```{r}
+colnames(cc)
+
+```
+
+### NA Removal
+
+Following code remove all the missing values in the dataset (314 rows among 8950 rows)
+
+```{r}
+cc <- cc %>% 
+  na.omit()
+
+```
+
+Now, the number of rows have been reduced to 8636 from 8950. 
+
+```{r}
+str(cc)
+```
+
+## EDA
+
+A primary exploratory data analysis is suggested to quickly understand the general distribution of the data.  
+
+```{r}
+
+```
 
 
 
