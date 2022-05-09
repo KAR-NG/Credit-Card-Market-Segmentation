@@ -12,7 +12,7 @@ always_allow_html: yes
 
 ## R PACKAGES
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(kableExtra)
 library(skimr)
@@ -178,10 +178,26 @@ str(cc)
 
 A primary exploratory data analysis is suggested to quickly understand the general distribution of the data.  
 
-```{r}
+```{r, fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
+
+# data frame
+
+df <- cc %>% 
+  pivot_longer(c(1:17), 
+               names_to = "my.variable", 
+               values_to = "my.value")
+
+# graphs
+
+ggplot(df, aes(x = my.value, fill = my.variable)) +
+  geom_histogram() +
+  facet_wrap(~my.variable, scale = "free") +
+  theme(legend.position = "none")
+
 
 ```
 
+Most of the variables follow Pareto trend (80:20 rule) with majority of the data belong to one side of the value. it can be seem quite hard to group the data and categories the data into several distinct group for marketing purposes.
 
 
 
