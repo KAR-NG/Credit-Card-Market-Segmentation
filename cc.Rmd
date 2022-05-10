@@ -1,5 +1,5 @@
 ---
-title: "Credit card Market Segmentation by Clustering"
+title: "Credit card Market Segmentation by Auto-Clustering"
 author: "Kar Ng"
 date: '2022-05'
 output: 
@@ -10,17 +10,20 @@ always_allow_html: yes
 ---
 
 
-## R PACKAGES
+## 1 R PACKAGES
 
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(kableExtra)
 library(skimr)
+library(factoextra)
+library(hopkins)
+library(clValid)
 
 ```
 
 
-## INTRODUCTION
+## 2 INTRODUCTION
 
 This project will use clustering technique to develop a customer segmentation to define marketing strategy. 
 
@@ -28,9 +31,9 @@ Dataset used in this project is called "Credit Card Dataset for Clustering" by A
 
 The dataset has 17 behavioral information of about 9000 active credit card holders.
 
-## DATA PREPARATION
+## 3 DATA PREPARATION
 
-### Data Import
+### 3.1 Data Import
 
 Following codes import the dataset and specify the first column as row's name, as it is required to perform clustering. 
 
@@ -56,7 +59,7 @@ names(cc)
 ```
 
 
-### Data Description
+### 3.2 Data Description
 
 Following is the data description extracted from the kaggle website.
 
@@ -91,7 +94,7 @@ data.frame(Variables, Description) %>%
 
 ```
 
-### Data Exploration
+### 3.3 Data Exploration
 
 **Data Size and type**
 
@@ -134,9 +137,9 @@ There are 8950 rows of data and I will still have 96.5% of data left after remov
 Typically, missing value can be handled by either removal, replaced with mean, median, or using imputation algorithm such as KNN or bagging algorithm. These techniques are usually performed when there are too many missing values in important variables. For example, when missing values is higher than 5% and less than 60%. 
 
 
-## DATA CLEANING
+## 4 DATA CLEANING
 
-### Rename all variables
+### 4.1 Rename all variables
 
 The name of all variables are in capital form and which would be difficult to read for readers and also myself.
 
@@ -158,7 +161,7 @@ colnames(cc)
 
 ```
 
-### NA Removal
+### 4.2 NA Removal
 
 Following code remove all the missing values in the dataset (314 rows among 8950 rows)
 
@@ -174,25 +177,33 @@ Now, the number of rows have been reduced to 8636 from 8950.
 str(cc)
 ```
 
-## EDA
+## 5 EDA
+
+**Distribution Study**
 
 A primary exploratory data analysis is suggested to quickly understand the general distribution of the data.  
 
-```{r, fig.height=10, fig.width=12, message=FALSE, warning=FALSE}
+```{r, fig.height=10, fig.width=13, message=FALSE, warning=FALSE}
 
 # data frame
 
-df <- cc %>% 
+cc2 <- cc %>% 
   pivot_longer(c(1:17), 
                names_to = "my.variable", 
                values_to = "my.value")
 
 # graphs
 
-ggplot(df, aes(x = my.value, fill = my.variable)) +
-  geom_histogram() +
+ggplot(cc2, aes(x = my.value, fill = my.variable)) +
+  geom_histogram(color = "black") +
   facet_wrap(~my.variable, scale = "free") +
-  theme(legend.position = "none")
+  theme_minimal() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold")) +
+  labs(title = "Variable Distribution Analysis",
+       subtitle = "by Histogram")
 
 
 ```
@@ -200,7 +211,60 @@ ggplot(df, aes(x = my.value, fill = my.variable)) +
 Most of the variables follow Pareto trend (80:20 rule) with majority of the data belong to one side of the value. it can be seem quite hard to group the data and categories the data into several distinct group for marketing purposes.
 
 
+## 6 Clustering
 
-## Unsupervised Clustering
+The dataset must met several conditions prior to be clustered,
+
+1. Observation as row and variable as variable, and it has been met.  
+2. No missing values in the dataset, and it has been met.  
+3. Standardising the data (generally recommended) to make variables comparable. This step will transform the data in all variables to a scale that would have 0 mean and 1 standard deviation. This step will be performed in this section.    
+
+Standardising the dataset:
+
+```{r}
+cc.scale <- scale(cc)
+
+nrow(cc.scale)
+```
+
+### 6.1 Clustering Tendency Assessment
+
+There is a big issue with clustering techniques is that it will always return clusters even if there is no any cluster in the dataset. Therefore, clustering tendency assessment is an important step to test is there clusters in the dataset. 
+
+**Hopkins Statistics** is a statistical method that using probability to test for spatial randomness of the data. The null hypothesis is that the credit card dataset is uniformly distributed, indicating no meaningful cluster. 
+
+* If the value of hopkins statistic is low (0 - 3), it indicates regularly-spaced data  
+* if the value is around zero, it indicates random data   
+* If the value is around 0.7 to 1, it indicate clustered data  
+
+```{r}
+hopkins(cc.scale, m = nrow(cc.scale)-1)
+
+```
+The Hopkins Statistics is 1, and base on this value I can reject the null hypothesis and conclude that the credit card dataset is significantly a clusterable data.
+
+### 6.2 Find Optimal K
+
+After 
+
+
+### 6.3 Hierarchical K-Means Clustering
+
+
+```{r}
+res.hk <- hkmeans(cc.scale, 4)
+
+```
+
+
+```{r}
+res.hk
+
+```
+
+
+
+## REFERENCE
+
 
 
