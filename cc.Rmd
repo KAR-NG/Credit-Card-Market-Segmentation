@@ -19,6 +19,7 @@ library(skimr)
 library(factoextra)
 library(hopkins)
 library(clValid)
+library(NbClust)
 
 ```
 
@@ -223,9 +224,19 @@ Standardising the dataset:
 
 ```{r}
 cc.scale <- scale(cc)
-
-nrow(cc.scale)
 ```
+
+Showing the first 6 rows of the data:
+
+```{r}
+head(cc.scale)
+
+```
+
+There are different type of clustering methods such as partitioning clustering which include "k-means clustering", "PAM", and "CLARA", or hierarchical clustering which include the famous "AGNES" and "DIANA". 
+
+Partitioning and hierarchical clustering methods are alternative to each other, and although automation with selection statistics are available to choose the best algorithm for the dataset but I will not perform it here, because I will perform an advanced "Hybrid" clustering technique for this project, called "Hierarchical K-Means Clustering (hkmeans)". This technique combine both the algorithms.
+
 
 ### 6.1 Clustering Tendency Assessment
 
@@ -245,26 +256,75 @@ The Hopkins Statistics is 1, and base on this value I can reject the null hypoth
 
 ### 6.2 Find Optimal K
 
-After 
+This section will use two typical methods among other popular methods to find the optimal number of clusters (specified by "k") that the dataset is able to be clustered into. All methods should recommend the same or highly similar value of optimal k.
+
+In general, the optimal k is specified by the analyst of the project, and it can a hard task. There is also no definite answer to say what k is the best, it is subjective and relying on the selection of the distance matrix and the parameters used for clustering the data.
+
+
+#### 6.3.1 Elbow Method
+
+Following shows the result of Elbow method. In Elbow method, clustering algorithm is computed for different number of clusters (k). For each k, the total within sum of square (WSS) is calculated.
+
+The location of a bend (knee) is generally considered as an indicator of appropriate k. 
+
+```{r}
+
+g1 <- fviz_nbclust(cc.scale, FUNcluster = kmeans, method = "wss")
+
+g1 + geom_vline(xintercept = 7, linetype = 2)
+
+```
+
+The optimal number of k might be 7. 
+
+
+#### 6.3.2 Silhouette Method
+
+This method uses average silhouette width to determine the optimal number of k. A high average silhouette width means good clustering. Additionally, the algorithm will suggest the best k for the credit card dataset, which is 9, although k-7 was also not too bad in term of average silhouette width and is not too far away k-9.
+
+```{r}
+fviz_nbclust(cc.scale, 
+             FUNcluster = kmeans, 
+             method = "silhouette")
+```
 
 
 ### 6.3 Hierarchical K-Means Clustering
 
 
+#### 6.3.1 hkmeans Algorithms
+
+Base on the suggestions gained from Elbow and Silhouette method, I have decided to use 7 as the optimal number of k. 
+
+In this section, I will perform hkmeans, which is a method that combine K-means clustering and hierarchical clustering to improve k-means results. 
+
+The biggest limitation K-means clustering is that the final result is subjected to the initial random selection of centroids. However, in hkmeans, the selection of centroid is not based on randomisation but the results of hierarchical clustering from the hk-mean algorithm, these centroids are optimiased centroids. Therefore, in hierarchical k-means clustering, the hierarchial clustering is being performed first, followed by the k-means clustering. 
+
+Following summarise the combination of the two algorithms :
+
+* **Step 1**: Compute hierarchical clustering with the optimal K obtained from previous section. In this step, distance matrix between each pair of observation is computed and based on that, a linkage function is selected to group similar objects into hierarchical cluster tree. Each observation are considered a cluster on its on, then the forming of clustering move upward and form bigger cluster, and this step continues until the root is reached. Finally, the tree is cut into pre-specified K (which is 7 in this case). 
+
+* **Step 2**: Compute the center (i.e. mean) of each cluster. Therefore, there are 7 new center here in each of the 7 clusters.
+
+* **Step 3**: Compute K-means clustering on the original normalised credit card dataset by using the set of cluster centers computed in step 2 as the initial cluster centers. Then, according to the algorithm of K-means clustering, each observations will be assigned to the closest centroid based on distance matrix (eg. euclidean). For each k-clusters, a new mean is being updated again by calculating the new mean value of all data points in the cluster. Finally, all observations are being re-allocated to these new means. The allocation of observations and the calculation of new means are iterated until the total within sum of square is minimised.
+
+#### 6.3.2 Codes
+
+Following code complete the hkmeans.
+
 ```{r}
-res.hk <- hkmeans(cc.scale, 4)
+res.hk <- hkmeans(cc.scale, 7)
+
+summary(res.hk)
 
 ```
 
 
-```{r}
-res.hk
-
-```
 
 
 
 ## REFERENCE
 
+Alboukadel Kassambara 2017， *Practical Guide to Cluster Analysis in R*, Multivariate Analysis 1, Edition 1, sthda.com
 
 
