@@ -212,7 +212,7 @@ ggplot(cc2, aes(x = my.value, fill = my.variable)) +
 Most of the variables follow Pareto trend (80:20 rule) with majority of the data belong to one side of the value. it can be seem quite hard to group the data and categories the data into several distinct group for marketing purposes.
 
 
-## 6 Clustering
+## 6 CLUSTERING
 
 The dataset must met several conditions prior to be clustered,
 
@@ -287,14 +287,11 @@ fviz_nbclust(cc.scale,
              FUNcluster = kmeans, 
              method = "silhouette")
 ```
+Base on the suggestions gained from Elbow and Silhouette method, I have decided to use 7 as the optimal number of k. 
+
 
 
 ### 6.3 Hierarchical K-Means Clustering
-
-
-#### 6.3.1 hkmeans Algorithms
-
-Base on the suggestions gained from Elbow and Silhouette method, I have decided to use 7 as the optimal number of k. 
 
 In this section, I will perform hkmeans, which is a method that combine K-means clustering and hierarchical clustering to improve k-means results. 
 
@@ -308,19 +305,109 @@ Following summarise the combination of the two algorithms :
 
 * **Step 3**: Compute K-means clustering on the original normalised credit card dataset by using the set of cluster centers computed in step 2 as the initial cluster centers. Then, according to the algorithm of K-means clustering, each observations will be assigned to the closest centroid based on distance matrix (eg. euclidean). For each k-clusters, a new mean is being updated again by calculating the new mean value of all data points in the cluster. Finally, all observations are being re-allocated to these new means. The allocation of observations and the calculation of new means are iterated until the total within sum of square is minimised.
 
-#### 6.3.2 Codes
-
 Following code complete the hkmeans.
 
 ```{r}
-res.hk <- hkmeans(cc.scale, 7)
+# Create hierarchical k-means clustering
 
-summary(res.hk)
+res.hk <- hkmeans(cc.scale, 
+                 k = 7,
+                 hc.metric = "euclidean",
+                 hc.method = "ward.D2",
+                 km.algorithm = "Hartigan-Wong")
+
+```
+
+The "res.hk" objects contain following results.
+
+```{r}
+# Items created from the object
+
+names(res.hk)
+
+```
+The dataset can be clustered (grouped) in 7 clusters (group), estimated by this project, and these 7 clusters has following size:
+
+```{r}
+res.hk$size
+
+```
+Graphical presentation of the results: 
+
+```{r}
+
+hk.cluster <- fviz_cluster(res.hk,
+                           palette = "jco",
+                           geom = "point") 
+  
+hk.cluster + 
+  theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5)) +
+  labs(title = "Hierarchical K-means Clustering Results",
+       subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 7")
+  
+  
+```
+
+All the observation points are being converted and plotted onto dimensional plots (Dim1 & Dim2). The dataset has been detected that it is clusterable and optimal k was estimated as 7. However, there are several clusters overlapping with each other, I start to question are points really being clustered well? 
+
+In traditional clustering such as partitioning and hierarchical clustering, observation points are assigned to exactly 1 cluster. 
+
+
+
+
+### 6.4 Fuzzy Clustering
+
+This section performs an alternative to k-mean clustering. In K-mean clustering or PAM, observations are assigned to exactly 1 cluster. However, in fuzzy clustering, each observation has a probability of belong to each cluster. Points that close to the center of a cluster will have a higher probability than points that further away from a center of points that belong to other cluster.  
+
+
+```{r}
+
+res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE)
+
+```
+Showing the member coefficient
+
+```{r}
+head(res.fanny$membership, 10)
+
+```
+
+
+```{r}
+head(res.fanny$coeff, 10)
+
+```
+
+Following code show the cluster that each observation belongs to (extracting the first 10 observations). 
+
+```{r}
+head(res.fanny$clustering, 10)
+
+```
+
+This 
+
+```{r}
+
+fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
+             palette = "jco")
+
 
 ```
 
 
 
+
+```{r}
+fviz_silhouette(res.fanny, palette = "jco")
+
+```
+
+
+
+###
 
 
 ## REFERENCE

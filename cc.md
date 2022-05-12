@@ -13,7 +13,7 @@ Kar Ng
     -   [4.1 Rename all variables](#41-rename-all-variables)
     -   [4.2 NA Removal](#42-na-removal)
 -   [5 EDA](#5-eda)
--   [6 Clustering](#6-clustering)
+-   [6 CLUSTERING](#6-clustering)
     -   [6.1 Clustering Tendency
         Assessment](#61-clustering-tendency-assessment)
     -   [6.2 Find Optimal K](#62-find-optimal-k)
@@ -21,8 +21,8 @@ Kar Ng
         -   [6.3.2 Silhouette Method](#632-silhouette-method)
     -   [6.3 Hierarchical K-Means
         Clustering](#63-hierarchical-k-means-clustering)
-        -   [6.3.1 hkmeans Algorithms](#631-hkmeans-algorithms)
-        -   [6.3.2 Codes](#632-codes)
+    -   [6.4 Fuzzy Clustering](#64-fuzzy-clustering)
+    -   [](#section)
 -   [REFERENCE](#reference)
 
 ## 1 R PACKAGES
@@ -68,61 +68,61 @@ randomly sample the first 10 rows of the dataset.
 sample_n(cc, 10)
 ```
 
-    ##            BALANCE BALANCE_FREQUENCY PURCHASES ONEOFF_PURCHASES
-    ## C13431  465.332882          1.000000   6920.08          5182.71
-    ## C11203    6.903243          0.727273    145.01             0.00
-    ## C15124 2133.901379          1.000000    303.03             9.03
-    ## C16579 3279.867381          0.875000   6520.00          6520.00
-    ## C18849   85.900738          1.000000      0.00             0.00
-    ## C16393   10.954457          0.125000      0.00             0.00
-    ## C10365   36.567901          0.090909   1098.31          1098.31
-    ## C15617   12.886661          0.363636   1437.15          1399.80
-    ## C16733  460.169381          1.000000   2703.95            10.00
-    ## C18479 3748.676835          1.000000    967.50           217.50
+    ##           BALANCE BALANCE_FREQUENCY PURCHASES ONEOFF_PURCHASES
+    ## C16617  326.55185          0.818182   2950.77          2950.77
+    ## C18786  117.34488          1.000000    661.30             0.00
+    ## C11298  939.10276          0.363636      0.00             0.00
+    ## C17034  162.04647          1.000000   1768.05             0.00
+    ## C13862  716.97097          1.000000    378.35             0.00
+    ## C18199   15.58700          0.545455    156.00             0.00
+    ## C12344 1301.54928          1.000000      0.00             0.00
+    ## C16508 5239.14687          1.000000     57.91            57.91
+    ## C17562   36.57785          0.545455    561.48             0.00
+    ## C19137 1117.59440          1.000000    291.62             0.00
     ##        INSTALLMENTS_PURCHASES CASH_ADVANCE PURCHASES_FREQUENCY
-    ## C13431                1737.37       0.0000            0.833333
-    ## C11203                 145.01       0.0000            0.750000
-    ## C15124                 294.00       0.0000            1.000000
-    ## C16579                   0.00       0.0000            0.750000
-    ## C18849                   0.00     278.3481            0.000000
-    ## C16393                   0.00     389.5944            0.000000
-    ## C10365                   0.00       0.0000            0.083333
-    ## C15617                  37.35       0.0000            0.333333
-    ## C16733                2693.95       0.0000            0.916667
-    ## C18479                 750.00    4420.3462            0.500000
+    ## C16617                   0.00      0.00000            0.583333
+    ## C18786                 661.30    477.82555            1.000000
+    ## C11298                   0.00   3470.93955            0.000000
+    ## C17034                1768.05      0.00000            1.000000
+    ## C13862                 378.35    801.87945            1.000000
+    ## C18199                 156.00      0.00000            0.545455
+    ## C12344                   0.00     72.68158            0.000000
+    ## C16508                   0.00   2973.96681            0.083333
+    ## C17562                 561.48      0.00000            0.500000
+    ## C19137                 291.62   1596.77192            1.000000
     ##        ONEOFF_PURCHASES_FREQUENCY PURCHASES_INSTALLMENTS_FREQUENCY
-    ## C13431                   0.583333                         0.500000
-    ## C11203                   0.000000                         0.750000
-    ## C15124                   0.083333                         1.000000
-    ## C16579                   0.750000                         0.000000
-    ## C18849                   0.000000                         0.000000
-    ## C16393                   0.000000                         0.000000
-    ## C10365                   0.083333                         0.000000
-    ## C15617                   0.250000                         0.083333
-    ## C16733                   0.166667                         0.916667
-    ## C18479                   0.083333                         0.333333
+    ## C16617                   0.583333                         0.000000
+    ## C18786                   0.000000                         0.900000
+    ## C11298                   0.000000                         0.000000
+    ## C17034                   0.000000                         1.000000
+    ## C13862                   0.000000                         0.857143
+    ## C18199                   0.000000                         0.545455
+    ## C12344                   0.000000                         0.000000
+    ## C16508                   0.083333                         0.000000
+    ## C17562                   0.000000                         0.416667
+    ## C19137                   0.000000                         0.857143
     ##        CASH_ADVANCE_FREQUENCY CASH_ADVANCE_TRX PURCHASES_TRX CREDIT_LIMIT
-    ## C13431                  0.000                0            34         9500
-    ## C11203                  0.000                0             9         3000
-    ## C15124                  0.000                0            13         3000
-    ## C16579                  0.000                0             7         3500
-    ## C18849                  0.250                3             0          500
-    ## C16393                  0.125                2             0         3000
-    ## C10365                  0.000                0             1         4800
-    ## C15617                  0.000                0             4         2700
-    ## C16733                  0.000                0            49         5000
-    ## C18479                  0.500               12             6         4000
-    ##         PAYMENTS MINIMUM_PAYMENTS PRC_FULL_PAYMENT TENURE
-    ## C13431 5691.4392        235.69440         0.636364     12
-    ## C11203  162.9302         66.97684         0.142857     12
-    ## C15124 1512.7706        615.20829         0.000000     12
-    ## C16579 3524.5127        523.42230         0.125000      8
-    ## C18849  193.7473        146.85872         0.000000     12
-    ## C16393    0.0000               NA         0.000000      8
-    ## C10365    0.0000               NA         0.000000     12
-    ## C15617 2372.0121         98.76761         0.250000     12
-    ## C16733 2039.1695        140.69611         0.555556     12
-    ## C18479 2036.1463       2006.97700         0.000000     12
+    ## C16617               0.000000                0            35         4000
+    ## C18786               0.100000                1            13         1200
+    ## C11298               0.166667                4             0         4000
+    ## C17034               0.000000                0            18         5000
+    ## C13862               0.428571                8             7         1000
+    ## C18199               0.000000                0             6         2000
+    ## C12344               0.083333                1             0         1500
+    ## C16508               0.250000                4             1         6000
+    ## C17562               0.000000                0             6         3000
+    ## C19137               0.142857                2             7         2000
+    ##          PAYMENTS MINIMUM_PAYMENTS PRC_FULL_PAYMENT TENURE
+    ## C16617 2224.27469        182.35313         0.571429     12
+    ## C18786  562.89665        150.94029         0.250000     10
+    ## C11298  501.82779        855.39844         0.000000     12
+    ## C17034 1668.05446        172.80434         0.916667     12
+    ## C13862  211.73438        317.66520         0.000000      7
+    ## C18199  168.72631         81.86127         0.200000     11
+    ## C12344  317.21162        531.39872         0.000000     12
+    ## C16508 1218.11475       1737.03375         0.000000     12
+    ## C17562  891.70861        167.28607         1.000000     12
+    ## C19137   74.05593        382.84620         0.000000      7
 
 The name of all variables are:
 
@@ -1226,7 +1226,7 @@ the data belong to one side of the value. it can be seem quite hard to
 group the data and categories the data into several distinct group for
 marketing purposes.
 
-## 6 Clustering
+## 6 CLUSTERING
 
 The dataset must met several conditions prior to be clustered,
 
@@ -1368,14 +1368,11 @@ fviz_nbclust(cc.scale,
              method = "silhouette")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-20-1.png)<!-- --> Base on the
+suggestions gained from Elbow and Silhouette method, I have decided to
+use 7 as the optimal number of k.
 
 ### 6.3 Hierarchical K-Means Clustering
-
-#### 6.3.1 hkmeans Algorithms
-
-Base on the suggestions gained from Elbow and Silhouette method, I have
-decided to use 7 as the optimal number of k.
 
 In this section, I will perform hkmeans, which is a method that combine
 K-means clustering and hierarchical clustering to improve k-means
@@ -1415,28 +1412,139 @@ Following summarise the combination of the two algorithms :
     The allocation of observations and the calculation of new means are
     iterated until the total within sum of square is minimised.
 
-#### 6.3.2 Codes
-
 Following code complete the hkmeans.
 
 ``` r
-res.hk <- hkmeans(cc.scale, 7)
+# Create hierarchical k-means clustering
 
-summary(res.hk)
+res.hk <- hkmeans(cc.scale, 
+                 k = 7,
+                 hc.metric = "euclidean",
+                 hc.method = "ward.D2",
+                 km.algorithm = "Hartigan-Wong")
 ```
 
-    ##              Length Class  Mode   
-    ## cluster        8636 -none- numeric
-    ## centers         119 -none- numeric
-    ## totss             1 -none- numeric
-    ## withinss          7 -none- numeric
-    ## tot.withinss      1 -none- numeric
-    ## betweenss         1 -none- numeric
-    ## size              7 -none- numeric
-    ## iter              1 -none- numeric
-    ## ifault            1 -none- numeric
-    ## data         146812 -none- numeric
-    ## hclust            7 hclust list
+The “res.hk” objects contain following results.
+
+``` r
+# Items created from the object
+
+names(res.hk)
+```
+
+    ##  [1] "cluster"      "centers"      "totss"        "withinss"     "tot.withinss"
+    ##  [6] "betweenss"    "size"         "iter"         "ifault"       "data"        
+    ## [11] "hclust"
+
+The dataset can be clustered (grouped) in 7 clusters (group), estimated
+by this project, and these 7 clusters has following size:
+
+``` r
+res.hk$size
+```
+
+    ## [1] 2717  871 2655  671 1093  599   30
+
+Graphical presentation of the results:
+
+``` r
+hk.cluster <- fviz_cluster(res.hk,
+                           palette = "jco",
+                           geom = "point") 
+  
+hk.cluster + 
+  theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5)) +
+  labs(title = "Hierarchical K-means Clustering Results",
+       subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 7")
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+
+All the observation points are being converted and plotted onto
+dimensional plots (Dim1 & Dim2). The dataset has been detected that it
+is clusterable and optimal k was estimated as 7. However, there are
+several clusters overlapping with each other, I start to question are
+points really being clustered well?
+
+In traditional clustering such as partitioning and hierarchical
+clustering, observation points are assigned to exactly 1 cluster.
+
+### 6.4 Fuzzy Clustering
+
+This section performs an alternative to k-mean clustering. In K-mean
+clustering or PAM, observations are assigned to exactly 1 cluster.
+However, in fuzzy clustering, each observation has a probability of
+belong to each cluster. Points that close to the center of a cluster
+will have a higher probability than points that further away from a
+center of points that belong to other cluster.
+
+``` r
+res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE)
+```
+
+    ## Warning in fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE): the
+    ## memberships are all very close to 1/k. Maybe decrease 'memb.exp' ?
+
+Showing the member coefficient
+
+``` r
+head(res.fanny$membership, 10)
+```
+
+    ##             [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]
+    ## C10001 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10002 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10003 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10005 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10006 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10007 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10008 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10009 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10010 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ## C10011 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+
+``` r
+head(res.fanny$coeff, 10)
+```
+
+    ##   dunn_coeff   normalized 
+    ## 1.428571e-01 3.493502e-14
+
+Following code show the cluster that each observation belongs to
+(extracting the first 10 observations).
+
+``` r
+head(res.fanny$clustering, 10)
+```
+
+    ## C10001 C10002 C10003 C10005 C10006 C10007 C10008 C10009 C10010 C10011 
+    ##      1      1      1      1      1      2      2      1      1      2
+
+This
+
+``` r
+fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
+             palette = "jco")
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+
+``` r
+fviz_silhouette(res.fanny, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 6993          0.24
+    ## 2       2  905          0.14
+    ## 3       3  623         -0.14
+    ## 4       4   80         -0.17
+    ## 5       5   35         -0.02
+
+![](cc_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+
+### 
 
 ## REFERENCE
 
