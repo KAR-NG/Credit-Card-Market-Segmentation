@@ -20,6 +20,15 @@ library(factoextra)
 library(hopkins)
 library(clValid)
 library(NbClust)
+library(mclust)
+library(cowplot)
+library(dbscan)
+library(fpc)
+library(corrplot)
+library(FactoMineR)
+
+
+
 
 ```
 
@@ -138,6 +147,17 @@ There are 8950 rows of data and I will still have 96.5% of data left after remov
 Typically, missing value can be handled by either removal, replaced with mean, median, or using imputation algorithm such as KNN or bagging algorithm. These techniques are usually performed when there are too many missing values in important variables. For example, when missing values is higher than 5% and less than 60%. 
 
 
+**Summary**
+
+Visualising the statistical distribution of each variable:
+
+```{r}
+summary(cc) %>% kbl() %>% kable_styling(bootstrap_options = c("bordered", "stripped"))
+
+```
+
+
+
 ## 4 DATA CLEANING
 
 ### 4.1 Rename all variables
@@ -180,6 +200,8 @@ str(cc)
 
 ## 5 EDA
 
+### 5.1 Histogram
+
 **Distribution Study**
 
 A primary exploratory data analysis is suggested to quickly understand the general distribution of the data.  
@@ -211,16 +233,23 @@ ggplot(cc2, aes(x = my.value, fill = my.variable)) +
 
 Most of the variables follow Pareto trend (80:20 rule) with majority of the data belong to one side of the value. it can be seem quite hard to group the data and categories the data into several distinct group for marketing purposes.
 
+### 5.2 Corrplot
 
-## 6 CLUSTERING
+Following plot shows the relationship between variables. 
 
-The dataset must met several conditions prior to be clustered,
+```{r}
+cor_cc <- cor(cc)
 
-1. Observation as row and variable as variable, and it has been met.  
-2. No missing values in the dataset, and it has been met.  
-3. Standardising the data (generally recommended) to make variables comparable. This step will transform the data in all variables to a scale that would have 0 mean and 1 standard deviation. This step will be performed in this section.    
+corrplot(cor_cc, type = "upper", tl.cex = 0.6)
 
-Standardising the dataset:
+
+```
+
+### 5.3 PCA
+
+This section I will use principal component analysis (PCA) to help my exploratory data analysis by reducing the number of variables into a few principal components. 
+
+This first step is general recommended to scale the data (standardisation) so that variables with different units will no be comparable. 
 
 ```{r}
 cc.scale <- scale(cc)
@@ -232,6 +261,60 @@ Showing the first 6 rows of the data:
 head(cc.scale)
 
 ```
+
+Applying principal component algorithms.
+
+```{r}
+
+res.pca <- PCA(cc.scale, graph = F)
+
+```
+
+
+```{r}
+fviz_screeplot(res.pca, addlabels = T, ylim = c(0, 30), barfill = "orange", barcolor = "black") +
+  labs(title = "Scree Plot") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+```{r}
+27.2 + 20.4+8.9 + 7.6+6.3 +5.7 + 4.9 + 4.2 + 3.7 + 3.1
+```
+
+
+
+```{r, fig.height=12, fig.width=10}
+pca1 <- fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+pca2 <- fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+pca3 <- fviz_pca_var(res.pca, repel = T,
+             col.var = "contrib",
+             gradient.cols = c("green", "green2", "darkgreen")) +
+    labs(title = "Factor Map: Variable - PCA") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
+pg <- plot_grid(pca1, pca2)
+plot_grid(pg, pca3, cols = 1)
+
+
+```
+
+
+
+
+
+
+
+## 6 CLUSTERING
+
+The dataset must met several conditions prior to be clustered,
+
+1. Observation as row and variable as variable, and it has been met.  
+2. No missing values in the dataset, and it has been met.  
+3. Standardising the data (generally recommended) to make variables comparable. This step will transform the data in all variables to a scale that would have 0 mean and 1 standard deviation. 
+
+
 
 There are different type of clustering methods such as partitioning clustering which include "k-means clustering", "PAM", and "CLARA", or hierarchical clustering which include the famous "AGNES" and "DIANA". 
 
@@ -352,9 +435,7 @@ hk.cluster +
 
 All the observation points are being converted and plotted onto dimensional plots (Dim1 & Dim2). The dataset has been detected that it is clusterable and optimal k was estimated as 7. However, there are several clusters overlapping with each other, I start to question are points really being clustered well? 
 
-In traditional clustering such as partitioning and hierarchical clustering, observation points are assigned to exactly 1 cluster. 
-
-
+In traditional clustering such as partitioning and hierarchical clustering, observation points are assigned to exactly 1 cluster. In the next section, I will use fuzzy clustering which will give each point a probability value, and to see whether this algorithm will cluster the points better.
 
 
 ### 6.4 Fuzzy Clustering
@@ -363,10 +444,10 @@ This section performs an alternative to k-mean clustering. In K-mean clustering 
 
 
 ```{r}
-
-res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE)
+res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE, memb.exp = 1.05)
 
 ```
+
 Showing the member coefficient
 
 ```{r}
@@ -387,7 +468,7 @@ head(res.fanny$clustering, 10)
 
 ```
 
-This 
+Visualising the clusters: 
 
 ```{r}
 
@@ -397,7 +478,7 @@ fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
 
 ```
 
-
+Silhouette width (Si) is a type of interval cluster validation, with a range from 1 to -1. If an observation has a Si of closer than 1 then the point is well clustered, whereas if a point is close to -1 than it indicates that the point is poorly clustered and assigning this point to other cluster may improve the results. It can be understood that if a point has negative Si, it means that they are not in the correct cluster (Alboukadel Kassambara 2017).     
 
 
 ```{r}
@@ -405,13 +486,120 @@ fviz_silhouette(res.fanny, palette = "jco")
 
 ```
 
+However, I will try to use other algorithms to see if they can better cluster the observations in this credit card dataset.
+
+### 6.5 Model-Based Clustering
+
+Model-based clustering also compute k-probabilities for each observation. However, this model-based clustering will suggest us the best k, as compared to hkmeans and fuzzy. 
+
+Algorithm used in this model-based clustering is called Expectation-Maximisation algorithm (EM). In this algorithm, data are  considered as coming from a mixture of two or more clusters, and all clusters may have a mixture of density. 
+
+The algorithm starts by hierarchical model-based clustering, and cut the dendrogram for different number of k. In each k, each cluster is centered at the means with increase density for points near the mean. 
+
+The gemetric features (volume, shape, and orientation) of each cluster will then be determined. After this step, the similarity of volume, shape and orientation between clusters of that k will be determine using a standard parameteration.
+
+Following code perform the model-based clustering:
+
+```{r}
+res.mc <- Mclust(cc.scale)
+
+```
+The best model is determined using the Bayesian Information Criterion or BIC. A large BIC indicates good model, and the model with highest BIC will be selected. 
+
+The model-based clustering selected a model with 6 clusters (k), the optimal selected model name is VEV, it means varying volume, equal shape, and varying orientation on the coordinate axes. 
+
+```{r}
+summary(res.mc)
+```
+
+Visualising the outcome of cluster-based modeling:
 
 
-###
+```{r, fig.height=8, fig.width=12}
+
+mc1 <-  fviz_mclust(res.mc, 
+            what = "classification",
+            geom = "point", 
+            alpha = 0.1)
+
+mc2 <- fviz_mclust(res.mc, what = "BIC")
+
+mc3 <- fviz_mclust(res.mc, what = "uncertainty") + labs(subtitle = "Larger symbols indicate the more uncertain observations.")
+
+
+pg1 <- plot_grid(mc1, mc2)
+
+plot_grid(pg1, mc3,
+          nrow = 2)
+
+```
+
+### DESCAN
+
+
+
+### Obtaining optimal eps value
+
+```{r}
+kNNdistplot(cc.scale, k = 7) 
+abline(h = 3, lty = 2)
+
+```
+
+Using 3 as the epsilon.
+
+Now, left with 
+
+
+
+```{r}
+f <- dbscan(cc.scale, eps = 2.5, MinPts = 3)
+
+```
+
+
+
+```{r}
+fviz_cluster(f, cc.scale, geom = "point")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## REFERENCE
 
 Alboukadel Kassambara 2017， *Practical Guide to Cluster Analysis in R*, Multivariate Analysis 1, Edition 1, sthda.com
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

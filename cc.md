@@ -13,6 +13,9 @@ Kar Ng
     -   [4.1 Rename all variables](#41-rename-all-variables)
     -   [4.2 NA Removal](#42-na-removal)
 -   [5 EDA](#5-eda)
+    -   [5.1 Histogram](#51-histogram)
+    -   [5.2 Corrplot](#52-corrplot)
+    -   [5.3 PCA](#53-pca)
 -   [6 CLUSTERING](#6-clustering)
     -   [6.1 Clustering Tendency
         Assessment](#61-clustering-tendency-assessment)
@@ -22,7 +25,9 @@ Kar Ng
     -   [6.3 Hierarchical K-Means
         Clustering](#63-hierarchical-k-means-clustering)
     -   [6.4 Fuzzy Clustering](#64-fuzzy-clustering)
-    -   [](#section)
+    -   [6.5 Model-Based Clustering](#65-model-based-clustering)
+    -   [DESCAN](#descan)
+    -   [Obtaining optimal eps value](#obtaining-optimal-eps-value)
 -   [REFERENCE](#reference)
 
 ## 1 R PACKAGES
@@ -35,6 +40,12 @@ library(factoextra)
 library(hopkins)
 library(clValid)
 library(NbClust)
+library(mclust)
+library(cowplot)
+library(dbscan)
+library(fpc)
+library(corrplot)
+library(FactoMineR)
 ```
 
 ## 2 INTRODUCTION
@@ -68,61 +79,61 @@ randomly sample the first 10 rows of the dataset.
 sample_n(cc, 10)
 ```
 
-    ##           BALANCE BALANCE_FREQUENCY PURCHASES ONEOFF_PURCHASES
-    ## C16617  326.55185          0.818182   2950.77          2950.77
-    ## C18786  117.34488          1.000000    661.30             0.00
-    ## C11298  939.10276          0.363636      0.00             0.00
-    ## C17034  162.04647          1.000000   1768.05             0.00
-    ## C13862  716.97097          1.000000    378.35             0.00
-    ## C18199   15.58700          0.545455    156.00             0.00
-    ## C12344 1301.54928          1.000000      0.00             0.00
-    ## C16508 5239.14687          1.000000     57.91            57.91
-    ## C17562   36.57785          0.545455    561.48             0.00
-    ## C19137 1117.59440          1.000000    291.62             0.00
+    ##            BALANCE BALANCE_FREQUENCY PURCHASES ONEOFF_PURCHASES
+    ## C19082  150.560510          0.833333    368.34           368.34
+    ## C10823    4.607593          0.181818     44.55            44.55
+    ## C17156  649.566721          1.000000    245.77           245.77
+    ## C18614  361.670150          1.000000    561.68           214.00
+    ## C10652 1803.955439          1.000000   1044.43           801.35
+    ## C13467  282.873015          1.000000    484.49           305.00
+    ## C12747 1564.396400          0.727273   1330.00             0.00
+    ## C14876  320.336250          1.000000      0.00             0.00
+    ## C19011    8.820603          0.636364    124.00             0.00
+    ## C13521  669.973636          0.545455      0.00             0.00
     ##        INSTALLMENTS_PURCHASES CASH_ADVANCE PURCHASES_FREQUENCY
-    ## C16617                   0.00      0.00000            0.583333
-    ## C18786                 661.30    477.82555            1.000000
-    ## C11298                   0.00   3470.93955            0.000000
-    ## C17034                1768.05      0.00000            1.000000
-    ## C13862                 378.35    801.87945            1.000000
-    ## C18199                 156.00      0.00000            0.545455
-    ## C12344                   0.00     72.68158            0.000000
-    ## C16508                   0.00   2973.96681            0.083333
-    ## C17562                 561.48      0.00000            0.500000
-    ## C19137                 291.62   1596.77192            1.000000
+    ## C19082                   0.00       0.0000            0.500000
+    ## C10823                   0.00       0.0000            0.083333
+    ## C17156                   0.00    1511.8944            0.083333
+    ## C18614                 347.68       0.0000            1.000000
+    ## C10652                 243.08     103.1746            0.666667
+    ## C13467                 179.49       0.0000            0.666667
+    ## C12747                1330.00    1906.4352            0.416667
+    ## C14876                   0.00    1258.9821            0.000000
+    ## C19011                 124.00       0.0000            0.545455
+    ## C13521                   0.00    1479.4406            0.000000
     ##        ONEOFF_PURCHASES_FREQUENCY PURCHASES_INSTALLMENTS_FREQUENCY
-    ## C16617                   0.583333                         0.000000
-    ## C18786                   0.000000                         0.900000
-    ## C11298                   0.000000                         0.000000
-    ## C17034                   0.000000                         1.000000
-    ## C13862                   0.000000                         0.857143
-    ## C18199                   0.000000                         0.545455
-    ## C12344                   0.000000                         0.000000
-    ## C16508                   0.083333                         0.000000
-    ## C17562                   0.000000                         0.416667
-    ## C19137                   0.000000                         0.857143
+    ## C19082                   0.500000                         0.000000
+    ## C10823                   0.083333                         0.000000
+    ## C17156                   0.083333                         0.000000
+    ## C18614                   0.166667                         0.916667
+    ## C10652                   0.416667                         0.333333
+    ## C13467                   0.416667                         0.416667
+    ## C12747                   0.000000                         0.416667
+    ## C14876                   0.000000                         0.000000
+    ## C19011                   0.000000                         0.454545
+    ## C13521                   0.000000                         0.000000
     ##        CASH_ADVANCE_FREQUENCY CASH_ADVANCE_TRX PURCHASES_TRX CREDIT_LIMIT
-    ## C16617               0.000000                0            35         4000
-    ## C18786               0.100000                1            13         1200
-    ## C11298               0.166667                4             0         4000
-    ## C17034               0.000000                0            18         5000
-    ## C13862               0.428571                8             7         1000
-    ## C18199               0.000000                0             6         2000
-    ## C12344               0.083333                1             0         1500
-    ## C16508               0.250000                4             1         6000
-    ## C17562               0.000000                0             6         3000
-    ## C19137               0.142857                2             7         2000
+    ## C19082               0.000000                0             4         1200
+    ## C10823               0.000000                0             1         6000
+    ## C17156               0.416667                6             1         3000
+    ## C18614               0.000000                0            14         1500
+    ## C10652               0.083333                1            23         5000
+    ## C13467               0.000000                0            15         1000
+    ## C12747               0.083333                1             6         8000
+    ## C14876               0.583333               14             0         6500
+    ## C19011               0.000000                0             6         1000
+    ## C13521               0.166667                3             0         3000
     ##          PAYMENTS MINIMUM_PAYMENTS PRC_FULL_PAYMENT TENURE
-    ## C16617 2224.27469        182.35313         0.571429     12
-    ## C18786  562.89665        150.94029         0.250000     10
-    ## C11298  501.82779        855.39844         0.000000     12
-    ## C17034 1668.05446        172.80434         0.916667     12
-    ## C13862  211.73438        317.66520         0.000000      7
-    ## C18199  168.72631         81.86127         0.200000     11
-    ## C12344  317.21162        531.39872         0.000000     12
-    ## C16508 1218.11475       1737.03375         0.000000     12
-    ## C17562  891.70861        167.28607         1.000000     12
-    ## C19137   74.05593        382.84620         0.000000      7
+    ## C19082   68.24447         85.17084         0.000000      6
+    ## C10823  267.14792         88.02845         0.000000     12
+    ## C17156  432.96622        259.68095         0.000000     12
+    ## C18614  252.66452        200.79353         0.000000     12
+    ## C10652 1068.80591        518.00109         0.000000     12
+    ## C13467  341.88362        979.92060         0.083333     12
+    ## C12747 1078.90780        825.48546         0.142857     12
+    ## C14876 1746.67253        194.53921         0.083333     12
+    ## C19011  193.80446        127.38785         1.000000     11
+    ## C13521 1616.21596        121.55031         0.000000     12
 
 The name of all variables are:
 
@@ -1109,6 +1120,461 @@ algorithm. These techniques are usually performed when there are too
 many missing values in important variables. For example, when missing
 values is higher than 5% and less than 60%.
 
+**Summary**
+
+Visualising the statistical distribution of each variable:
+
+``` r
+summary(cc) %>% kbl() %>% kable_styling(bootstrap_options = c("bordered", "stripped"))
+```
+
+<table class="table table-bordered" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:left;">
+BALANCE
+</th>
+<th style="text-align:left;">
+BALANCE_FREQUENCY
+</th>
+<th style="text-align:left;">
+PURCHASES
+</th>
+<th style="text-align:left;">
+ONEOFF_PURCHASES
+</th>
+<th style="text-align:left;">
+INSTALLMENTS_PURCHASES
+</th>
+<th style="text-align:left;">
+CASH_ADVANCE
+</th>
+<th style="text-align:left;">
+PURCHASES_FREQUENCY
+</th>
+<th style="text-align:left;">
+ONEOFF_PURCHASES_FREQUENCY
+</th>
+<th style="text-align:left;">
+PURCHASES_INSTALLMENTS_FREQUENCY
+</th>
+<th style="text-align:left;">
+CASH_ADVANCE_FREQUENCY
+</th>
+<th style="text-align:left;">
+CASH_ADVANCE_TRX
+</th>
+<th style="text-align:left;">
+PURCHASES_TRX
+</th>
+<th style="text-align:left;">
+CREDIT_LIMIT
+</th>
+<th style="text-align:left;">
+PAYMENTS
+</th>
+<th style="text-align:left;">
+MINIMUM_PAYMENTS
+</th>
+<th style="text-align:left;">
+PRC_FULL_PAYMENT
+</th>
+<th style="text-align:left;">
+TENURE
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Min. : 0.0
+</td>
+<td style="text-align:left;">
+Min. :0.0000
+</td>
+<td style="text-align:left;">
+Min. : 0.00
+</td>
+<td style="text-align:left;">
+Min. : 0.0
+</td>
+<td style="text-align:left;">
+Min. : 0.0
+</td>
+<td style="text-align:left;">
+Min. : 0.0
+</td>
+<td style="text-align:left;">
+Min. :0.00000
+</td>
+<td style="text-align:left;">
+Min. :0.00000
+</td>
+<td style="text-align:left;">
+Min. :0.0000
+</td>
+<td style="text-align:left;">
+Min. :0.0000
+</td>
+<td style="text-align:left;">
+Min. : 0.000
+</td>
+<td style="text-align:left;">
+Min. : 0.00
+</td>
+<td style="text-align:left;">
+Min. : 50
+</td>
+<td style="text-align:left;">
+Min. : 0.0
+</td>
+<td style="text-align:left;">
+Min. : 0.02
+</td>
+<td style="text-align:left;">
+Min. :0.0000
+</td>
+<td style="text-align:left;">
+Min. : 6.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+1st Qu.: 128.3
+</td>
+<td style="text-align:left;">
+1st Qu.:0.8889
+</td>
+<td style="text-align:left;">
+1st Qu.: 39.63
+</td>
+<td style="text-align:left;">
+1st Qu.: 0.0
+</td>
+<td style="text-align:left;">
+1st Qu.: 0.0
+</td>
+<td style="text-align:left;">
+1st Qu.: 0.0
+</td>
+<td style="text-align:left;">
+1st Qu.:0.08333
+</td>
+<td style="text-align:left;">
+1st Qu.:0.00000
+</td>
+<td style="text-align:left;">
+1st Qu.:0.0000
+</td>
+<td style="text-align:left;">
+1st Qu.:0.0000
+</td>
+<td style="text-align:left;">
+1st Qu.: 0.000
+</td>
+<td style="text-align:left;">
+1st Qu.: 1.00
+</td>
+<td style="text-align:left;">
+1st Qu.: 1600
+</td>
+<td style="text-align:left;">
+1st Qu.: 383.3
+</td>
+<td style="text-align:left;">
+1st Qu.: 169.12
+</td>
+<td style="text-align:left;">
+1st Qu.:0.0000
+</td>
+<td style="text-align:left;">
+1st Qu.:12.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Median : 873.4
+</td>
+<td style="text-align:left;">
+Median :1.0000
+</td>
+<td style="text-align:left;">
+Median : 361.28
+</td>
+<td style="text-align:left;">
+Median : 38.0
+</td>
+<td style="text-align:left;">
+Median : 89.0
+</td>
+<td style="text-align:left;">
+Median : 0.0
+</td>
+<td style="text-align:left;">
+Median :0.50000
+</td>
+<td style="text-align:left;">
+Median :0.08333
+</td>
+<td style="text-align:left;">
+Median :0.1667
+</td>
+<td style="text-align:left;">
+Median :0.0000
+</td>
+<td style="text-align:left;">
+Median : 0.000
+</td>
+<td style="text-align:left;">
+Median : 7.00
+</td>
+<td style="text-align:left;">
+Median : 3000
+</td>
+<td style="text-align:left;">
+Median : 856.9
+</td>
+<td style="text-align:left;">
+Median : 312.34
+</td>
+<td style="text-align:left;">
+Median :0.0000
+</td>
+<td style="text-align:left;">
+Median :12.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Mean : 1564.5
+</td>
+<td style="text-align:left;">
+Mean :0.8773
+</td>
+<td style="text-align:left;">
+Mean : 1003.20
+</td>
+<td style="text-align:left;">
+Mean : 592.4
+</td>
+<td style="text-align:left;">
+Mean : 411.1
+</td>
+<td style="text-align:left;">
+Mean : 978.9
+</td>
+<td style="text-align:left;">
+Mean :0.49035
+</td>
+<td style="text-align:left;">
+Mean :0.20246
+</td>
+<td style="text-align:left;">
+Mean :0.3644
+</td>
+<td style="text-align:left;">
+Mean :0.1351
+</td>
+<td style="text-align:left;">
+Mean : 3.249
+</td>
+<td style="text-align:left;">
+Mean : 14.71
+</td>
+<td style="text-align:left;">
+Mean : 4494
+</td>
+<td style="text-align:left;">
+Mean : 1733.1
+</td>
+<td style="text-align:left;">
+Mean : 864.21
+</td>
+<td style="text-align:left;">
+Mean :0.1537
+</td>
+<td style="text-align:left;">
+Mean :11.52
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+3rd Qu.: 2054.1
+</td>
+<td style="text-align:left;">
+3rd Qu.:1.0000
+</td>
+<td style="text-align:left;">
+3rd Qu.: 1110.13
+</td>
+<td style="text-align:left;">
+3rd Qu.: 577.4
+</td>
+<td style="text-align:left;">
+3rd Qu.: 468.6
+</td>
+<td style="text-align:left;">
+3rd Qu.: 1113.8
+</td>
+<td style="text-align:left;">
+3rd Qu.:0.91667
+</td>
+<td style="text-align:left;">
+3rd Qu.:0.30000
+</td>
+<td style="text-align:left;">
+3rd Qu.:0.7500
+</td>
+<td style="text-align:left;">
+3rd Qu.:0.2222
+</td>
+<td style="text-align:left;">
+3rd Qu.: 4.000
+</td>
+<td style="text-align:left;">
+3rd Qu.: 17.00
+</td>
+<td style="text-align:left;">
+3rd Qu.: 6500
+</td>
+<td style="text-align:left;">
+3rd Qu.: 1901.1
+</td>
+<td style="text-align:left;">
+3rd Qu.: 825.49
+</td>
+<td style="text-align:left;">
+3rd Qu.:0.1429
+</td>
+<td style="text-align:left;">
+3rd Qu.:12.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Max. :19043.1
+</td>
+<td style="text-align:left;">
+Max. :1.0000
+</td>
+<td style="text-align:left;">
+Max. :49039.57
+</td>
+<td style="text-align:left;">
+Max. :40761.2
+</td>
+<td style="text-align:left;">
+Max. :22500.0
+</td>
+<td style="text-align:left;">
+Max. :47137.2
+</td>
+<td style="text-align:left;">
+Max. :1.00000
+</td>
+<td style="text-align:left;">
+Max. :1.00000
+</td>
+<td style="text-align:left;">
+Max. :1.0000
+</td>
+<td style="text-align:left;">
+Max. :1.5000
+</td>
+<td style="text-align:left;">
+Max. :123.000
+</td>
+<td style="text-align:left;">
+Max. :358.00
+</td>
+<td style="text-align:left;">
+Max. :30000
+</td>
+<td style="text-align:left;">
+Max. :50721.5
+</td>
+<td style="text-align:left;">
+Max. :76406.21
+</td>
+<td style="text-align:left;">
+Max. :1.0000
+</td>
+<td style="text-align:left;">
+Max. :12.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA’s :1
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA’s :313
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+</tr>
+</tbody>
+</table>
+
 ## 4 DATA CLEANING
 
 ### 4.1 Rename all variables
@@ -1192,6 +1658,8 @@ str(cc)
 
 ## 5 EDA
 
+### 5.1 Histogram
+
 **Distribution Study**
 
 A primary exploratory data analysis is suggested to quickly understand
@@ -1219,25 +1687,34 @@ ggplot(cc2, aes(x = my.value, fill = my.variable)) +
        subtitle = "by Histogram")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 Most of the variables follow Pareto trend (80:20 rule) with majority of
 the data belong to one side of the value. it can be seem quite hard to
 group the data and categories the data into several distinct group for
 marketing purposes.
 
-## 6 CLUSTERING
+### 5.2 Corrplot
 
-The dataset must met several conditions prior to be clustered,
+Following plot shows the relationship between variables.
 
-1.  Observation as row and variable as variable, and it has been met.  
-2.  No missing values in the dataset, and it has been met.  
-3.  Standardising the data (generally recommended) to make variables
-    comparable. This step will transform the data in all variables to a
-    scale that would have 0 mean and 1 standard deviation. This step
-    will be performed in this section.
+``` r
+cor_cc <- cor(cc)
 
-Standardising the dataset:
+corrplot(cor_cc, type = "upper", tl.cex = 0.6)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+### 5.3 PCA
+
+This section I will use principal component analysis (PCA) to help my
+exploratory data analysis by reducing the number of variables into a few
+principal components.
+
+This first step is general recommended to scale the data
+(standardisation) so that variables with different units will no be
+comparable.
 
 ``` r
 cc.scale <- scale(cc)
@@ -1284,6 +1761,56 @@ head(cc.scale)
     ## C10005 -0.3801428      -0.26111544       -0.5376958 0.3551601
     ## C10006 -0.1321118       0.65032579       -0.5376958 0.3551601
     ## C10007  1.5704929      -0.28080945        2.8375934 0.3551601
+
+Applying principal component algorithms.
+
+``` r
+res.pca <- PCA(cc.scale, graph = F)
+```
+
+``` r
+fviz_screeplot(res.pca, addlabels = T, ylim = c(0, 30), barfill = "orange", barcolor = "black") +
+  labs(title = "Scree Plot") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+
+``` r
+27.2 + 20.4+8.9 + 7.6+6.3 +5.7 + 4.9 + 4.2 + 3.7 + 3.1
+```
+
+    ## [1] 92
+
+``` r
+pca1 <- fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+pca2 <- fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+pca3 <- fviz_pca_var(res.pca, repel = T,
+             col.var = "contrib",
+             gradient.cols = c("green", "green2", "darkgreen")) +
+    labs(title = "Factor Map: Variable - PCA") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+
+pg <- plot_grid(pca1, pca2)
+plot_grid(pg, pca3, cols = 1)
+```
+
+    ## Warning in plot_grid(pg, pca3, cols = 1): Argument 'cols' is deprecated. Use
+    ## 'ncol' instead.
+
+![](cc_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
+## 6 CLUSTERING
+
+The dataset must met several conditions prior to be clustered,
+
+1.  Observation as row and variable as variable, and it has been met.  
+2.  No missing values in the dataset, and it has been met.  
+3.  Standardising the data (generally recommended) to make variables
+    comparable. This step will transform the data in all variables to a
+    scale that would have 0 mean and 1 standard deviation.
 
 There are different type of clustering methods such as partitioning
 clustering which include “k-means clustering”, “PAM”, and “CLARA”, or
@@ -1350,7 +1877,7 @@ g1 <- fviz_nbclust(cc.scale, FUNcluster = kmeans, method = "wss")
 g1 + geom_vline(xintercept = 7, linetype = 2)
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 The optimal number of k might be 7.
 
@@ -1368,7 +1895,7 @@ fviz_nbclust(cc.scale,
              method = "silhouette")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-20-1.png)<!-- --> Base on the
+![](cc_files/figure-gfm/unnamed-chunk-26-1.png)<!-- --> Base on the
 suggestions gained from Elbow and Silhouette method, I have decided to
 use 7 as the optimal number of k.
 
@@ -1460,7 +1987,7 @@ hk.cluster +
        subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 7")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 All the observation points are being converted and plotted onto
 dimensional plots (Dim1 & Dim2). The dataset has been detected that it
@@ -1469,7 +1996,10 @@ several clusters overlapping with each other, I start to question are
 points really being clustered well?
 
 In traditional clustering such as partitioning and hierarchical
-clustering, observation points are assigned to exactly 1 cluster.
+clustering, observation points are assigned to exactly 1 cluster. In the
+next section, I will use fuzzy clustering which will give each point a
+probability value, and to see whether this algorithm will cluster the
+points better.
 
 ### 6.4 Fuzzy Clustering
 
@@ -1481,11 +2011,8 @@ will have a higher probability than points that further away from a
 center of points that belong to other cluster.
 
 ``` r
-res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE)
+res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE, memb.exp = 1.05)
 ```
-
-    ## Warning in fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE): the
-    ## memberships are all very close to 1/k. Maybe decrease 'memb.exp' ?
 
 Showing the member coefficient
 
@@ -1493,24 +2020,35 @@ Showing the member coefficient
 head(res.fanny$membership, 10)
 ```
 
-    ##             [,1]      [,2]      [,3]      [,4]      [,5]      [,6]      [,7]
-    ## C10001 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10002 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10003 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10005 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10006 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10007 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10008 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10009 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10010 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
-    ## C10011 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571 0.1428571
+    ##                [,1]         [,2]         [,3]         [,4]         [,5]
+    ## C10001 9.997912e-01 2.990219e-11 7.039757e-12 4.187260e-07 2.083663e-04
+    ## C10002 2.287256e-04 9.997696e-01 2.688884e-08 1.654131e-07 1.275554e-06
+    ## C10003 1.337068e-04 4.959093e-06 9.991519e-01 6.991478e-04 3.905206e-06
+    ## C10005 1.000000e+00 5.470772e-14 6.205105e-15 8.764325e-11 9.190969e-11
+    ## C10006 5.766380e-06 3.869240e-10 9.920858e-09 9.999938e-01 8.055125e-09
+    ## C10007 7.129527e-08 4.572558e-07 9.999703e-01 2.464026e-06 1.905579e-07
+    ## C10008 1.348625e-11 2.007367e-14 2.195489e-12 1.000000e+00 3.901130e-13
+    ## C10009 9.992619e-01 6.965812e-09 1.634613e-08 7.368415e-04 1.157814e-06
+    ## C10010 2.811555e-04 3.728391e-07 7.473246e-07 2.668597e-06 9.997146e-01
+    ## C10011 9.951349e-11 2.656408e-13 5.579472e-11 1.000000e+00 4.540880e-12
+    ##                [,6]         [,7]
+    ## C10001 1.078790e-09 6.793850e-10
+    ## C10002 2.225540e-07 1.734300e-08
+    ## C10003 1.118085e-06 5.243371e-06
+    ## C10005 2.931857e-13 9.391734e-14
+    ## C10006 6.378389e-10 4.151934e-07
+    ## C10007 1.336489e-07 2.635145e-05
+    ## C10008 9.751405e-14 1.142934e-09
+    ## C10009 3.152401e-09 5.835681e-08
+    ## C10010 2.511242e-07 2.156075e-07
+    ## C10011 1.466079e-12 1.595264e-08
 
 ``` r
 head(res.fanny$coeff, 10)
 ```
 
-    ##   dunn_coeff   normalized 
-    ## 1.428571e-01 3.493502e-14
+    ## dunn_coeff normalized 
+    ##  0.9382183  0.9279213
 
 Following code show the cluster that each observation belongs to
 (extracting the first 10 observations).
@@ -1520,31 +2058,143 @@ head(res.fanny$clustering, 10)
 ```
 
     ## C10001 C10002 C10003 C10005 C10006 C10007 C10008 C10009 C10010 C10011 
-    ##      1      1      1      1      1      2      2      1      1      2
+    ##      1      2      3      1      4      3      4      1      5      4
 
-This
+Visualising the clusters:
 
 ``` r
 fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
              palette = "jco")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+
+Silhouette width (Si) is a type of interval cluster validation, with a
+range from 1 to -1. If an observation has a Si of closer than 1 then the
+point is well clustered, whereas if a point is close to -1 than it
+indicates that the point is poorly clustered and assigning this point to
+other cluster may improve the results. It can be understood that if a
+point has negative Si, it means that they are not in the correct cluster
+(Alboukadel Kassambara 2017).
 
 ``` r
 fviz_silhouette(res.fanny, palette = "jco")
 ```
 
     ##   cluster size ave.sil.width
-    ## 1       1 6993          0.24
-    ## 2       2  905          0.14
-    ## 3       3  623         -0.14
-    ## 4       4   80         -0.17
-    ## 5       5   35         -0.02
+    ## 1       1 2331          0.40
+    ## 2       2 1163         -0.05
+    ## 3       3 1294         -0.12
+    ## 4       4 1571          0.23
+    ## 5       5 1003          0.21
+    ## 6       6  587          0.14
+    ## 7       7  687          0.24
 
-![](cc_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
-### 
+However, I will try to use other algorithms to see if they can better
+cluster the observations in this credit card dataset.
+
+### 6.5 Model-Based Clustering
+
+Model-based clustering also compute k-probabilities for each
+observation. However, this model-based clustering will suggest us the
+best k, as compared to hkmeans and fuzzy.
+
+Algorithm used in this model-based clustering is called
+Expectation-Maximisation algorithm (EM). In this algorithm, data are
+considered as coming from a mixture of two or more clusters, and all
+clusters may have a mixture of density.
+
+The algorithm starts by hierarchical model-based clustering, and cut the
+dendrogram for different number of k. In each k, each cluster is
+centered at the means with increase density for points near the mean.
+
+The gemetric features (volume, shape, and orientation) of each cluster
+will then be determined. After this step, the similarity of volume,
+shape and orientation between clusters of that k will be determine using
+a standard parameteration.
+
+Following code perform the model-based clustering:
+
+``` r
+res.mc <- Mclust(cc.scale)
+```
+
+The best model is determined using the Bayesian Information Criterion or
+BIC. A large BIC indicates good model, and the model with highest BIC
+will be selected.
+
+The model-based clustering selected a model with 6 clusters (k), the
+optimal selected model name is VEV, it means varying volume, equal
+shape, and varying orientation on the coordinate axes.
+
+``` r
+summary(res.mc)
+```
+
+    ## ---------------------------------------------------- 
+    ## Gaussian finite mixture model fitted by EM algorithm 
+    ## ---------------------------------------------------- 
+    ## 
+    ## Mclust VEV (ellipsoidal, equal shape) model with 6 components: 
+    ## 
+    ##  log-likelihood    n  df     BIC      ICL
+    ##         38638.5 8636 945 68711.8 68600.14
+    ## 
+    ## Clustering table:
+    ##    1    2    3    4    5    6 
+    ## 1964 2482  717 1561 1092  820
+
+Visualising the outcome of cluster-based modeling:
+
+``` r
+mc1 <-  fviz_mclust(res.mc, 
+            what = "classification",
+            geom = "point", 
+            alpha = 0.1)
+
+mc2 <- fviz_mclust(res.mc, what = "BIC")
+
+mc3 <- fviz_mclust(res.mc, what = "uncertainty") + labs(subtitle = "Larger symbols indicate the more uncertain observations.")
+```
+
+    ## Warning: `guides(<scale> = FALSE)` is deprecated. Please use `guides(<scale> =
+    ## "none")` instead.
+
+``` r
+pg1 <- plot_grid(mc1, mc2)
+
+plot_grid(pg1, mc3,
+          nrow = 2)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+
+### DESCAN
+
+### Obtaining optimal eps value
+
+``` r
+kNNdistplot(cc.scale, k = 7) 
+abline(h = 3, lty = 2)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+
+Using 3 as the epsilon.
+
+Now, left with
+
+``` r
+f <- dbscan(cc.scale, eps = 2.5, MinPts = 3)
+```
+
+``` r
+fviz_cluster(f, cc.scale, geom = "point")
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
 
 ## REFERENCE
 
