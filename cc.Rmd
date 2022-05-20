@@ -26,11 +26,11 @@ library(dbscan)
 library(fpc)
 library(corrplot)
 library(FactoMineR)
-
-
-
+library(ggiraphExtra)   # for radar 
+library(GGally)         # for ggparcoord
 
 ```
+
 
 
 ## 2 INTRODUCTION
@@ -157,8 +157,7 @@ summary(cc) %>% kbl() %>% kable_styling(bootstrap_options = c("bordered", "strip
 ```
 
 
-
-## 4 DATA CLEANING
+## 4 DATA CLEANING AND MANIPULATION
 
 ### 4.1 Rename all variables
 
@@ -281,8 +280,6 @@ fviz_screeplot(res.pca, addlabels = T, ylim = c(0, 30), barfill = "orange", barc
 27.2 + 20.4+8.9 + 7.6+6.3 +5.7 + 4.9 + 4.2 + 3.7 + 3.1
 ```
 
-
-
 ```{r, fig.height=12, fig.width=10}
 pca1 <- fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
 pca2 <- fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
@@ -300,10 +297,13 @@ plot_grid(pg, pca3, cols = 1)
 
 ```
 
+Most influential variables:
 
+1. Purchases, Purchases_trx, Oneoff_purchases, installments_purchases, purchases_frequency
 
+2. Cash_advance, cash_advance_frequency, cash_advance_trx
 
-
+Component 1 is more about purchases made and component 2 is more about cash in advanced requested by customers. 
 
 
 ## 6 CLUSTERING
@@ -311,25 +311,24 @@ plot_grid(pg, pca3, cols = 1)
 The dataset must met several conditions prior to be clustered,
 
 1. Observation as row and variable as variable, and it has been met.  
-2. No missing values in the dataset, and it has been met.  
-3. Standardising the data (generally recommended) to make variables comparable. This step will transform the data in all variables to a scale that would have 0 mean and 1 standard deviation. 
 
+2. No missing values in the dataset, and it has been met. 
 
+3. Standardising the data (generally recommended) to make variables comparable. This step will transform the data in all variables to a scale that would have 0 mean and 1 standard deviation. This step has been met in the PC section.   
 
 There are different type of clustering methods such as partitioning clustering which include "k-means clustering", "PAM", and "CLARA", or hierarchical clustering which include the famous "AGNES" and "DIANA". 
 
-Partitioning and hierarchical clustering methods are alternative to each other, and although automation with selection statistics are available to choose the best algorithm for the dataset but I will not perform it here, because I will perform an advanced "Hybrid" clustering technique for this project, called "Hierarchical K-Means Clustering (hkmeans)". This technique combine both the algorithms.
+Partitioning and hierarchical clustering methods are alternative to each other, and although automation with selection statistics are available to choose the best algorithm for the dataset but I will not perform it here as the data size is too large to handle within a convenient time frame. However, complete proper steps of clustering will be performed along with several advanced clustering technique. Ultimately, I will pick a result from a clustering technique for visualisation. 
 
-
-### 6.1 Clustering Tendency Assessment
+### 6.1 Cluster-Tendency Assessment
 
 There is a big issue with clustering techniques is that it will always return clusters even if there is no any cluster in the dataset. Therefore, clustering tendency assessment is an important step to test is there clusters in the dataset. 
 
 **Hopkins Statistics** is a statistical method that using probability to test for spatial randomness of the data. The null hypothesis is that the credit card dataset is uniformly distributed, indicating no meaningful cluster. 
 
-* If the value of hopkins statistic is low (0 - 3), it indicates regularly-spaced data  
+* If the value of hopkins statistic is low (0 - 3), it indicates regularly-spaced data. Indecisive (clustered or random).  
 * if the value is around zero, it indicates random data   
-* If the value is around 0.7 to 1, it indicate clustered data  
+* If the value is around 0.7 to 1, it is a significant evidence that the data might be clusterable
 
 ```{r}
 hopkins(cc.scale, m = nrow(cc.scale)-1)
@@ -337,40 +336,209 @@ hopkins(cc.scale, m = nrow(cc.scale)-1)
 ```
 The Hopkins Statistics is 1, and base on this value I can reject the null hypothesis and conclude that the credit card dataset is significantly a clusterable data.
 
-### 6.2 Find Optimal K
+Following is the same test from other R package and yield the similar result. 
 
-This section will use two typical methods among other popular methods to find the optimal number of clusters (specified by "k") that the dataset is able to be clustered into. All methods should recommend the same or highly similar value of optimal k.
+```{r}
+get_clust_tendency(cc.scale, n = 100, graph = F)
+
+
+```
+
+### 6.2 CLARA
+
+I have picked CLARA as the clustering algoritm to perform for this dataset because this dataset has more than thousand of observations (Alboukadel Kassambara 2017). CLARA stands for "Clustering Large Application", which is an extension of PAM (Partitioning Around Medoid), and PAM is a robust alternative to the K-mean clustering that because it is less sensitive to outlier. 
+
+As the name of CLARA suggests, I apply CALARA because this dataset is a large dataset and CLARA can help to reduce computation time and RAM storage issue by a sampling approach. I didn't pick hierarchical clustering (AGNES and DIANA) for this project because of the same reason, CLARA is desgined for large application.
+
+
+```{r, fig.width=14, fig.height=8}
+res.clara2 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 2,
+                    graph = F)
+
+res.clara3 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 3,
+                    graph = F)
+
+res.clara4 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 4,
+                    graph = F)
+
+res.clara5 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 5,
+                    graph = F)
+
+res.clara6 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 6,
+                    graph = F)
+
+res.clara7 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 7,
+                    graph = F)
+
+
+f1 <- fviz_cluster(res.clara2, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 2)")
+
+f2 <- fviz_cluster(res.clara3, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 3)")
+
+f3 <- fviz_cluster(res.clara4, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 4)")
+
+f4 <- fviz_cluster(res.clara5, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 5)")
+
+f5 <- fviz_cluster(res.clara6, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 6)")
+
+f6 <- fviz_cluster(res.clara7, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 7)")
+
+plot_grid(f1, f2, f3, f4, f5, f6,
+          ncol = 3,
+          nrow = 2)
+
+```
+
+From above visualisation, I can see how the data partitions change when K is increased. We can see clearly how each partition is formed. 
+
+Following shows the silhouette width of each observation in each k. 
+
+The line in the middle of the graph is the overall average silhouette width of each k, the higher silhouette width, the better the quality of a clustering or an observation.  
+
+In following plots, it can be interpreted as this (Alboukadel Kassambara 2017):
+
+* Observations with a large Silhouette value are very well clustered  
+* Observations with a small silhouette value means they lies between two clusters  
+* Observations with a negative Silhouette are probably assgined to the wrong cluster. However, negative values may be unavoidable.
+
+```{r, fig.width=14, fig.height=8}
+
+f7 <- fviz_silhouette(res.clara2, palette = "jco")
+f8 <- fviz_silhouette(res.clara3, palette = "jco")
+f9 <- fviz_silhouette(res.clara4, palette = "jco")
+f10 <- fviz_silhouette(res.clara5, palette = "jco")
+f11 <- fviz_silhouette(res.clara6, palette = "jco")
+f12 <- fviz_silhouette(res.clara7, palette = "jco")
+
+plot_grid(f7, f8, f9, f10, f11, f12,
+          ncol = 3,
+          nrow = 2)
+
+```
+
+Instead of choosing the clustering manually, there are methods to suggest the best K.
+
+Now I will use two typical methods among other popular methods to find the optimal number of clusters (specified by "k") that the dataset is able to be clustered into. All methods should recommend the same or highly similar value of optimal k.
 
 In general, the optimal k is specified by the analyst of the project, and it can a hard task. There is also no definite answer to say what k is the best, it is subjective and relying on the selection of the distance matrix and the parameters used for clustering the data.
 
 
-#### 6.3.1 Elbow Method
+**Elbow Method:**
 
 Following shows the result of Elbow method. In Elbow method, clustering algorithm is computed for different number of clusters (k). For each k, the total within sum of square (WSS) is calculated.
 
 The location of a bend (knee) is generally considered as an indicator of appropriate k. 
 
 ```{r}
-
-g1 <- fviz_nbclust(cc.scale, FUNcluster = kmeans, method = "wss")
-
-g1 + geom_vline(xintercept = 7, linetype = 2)
-
+fviz_nbclust(cc.scale, FUNcluster = clara, method = "wss")
 ```
 
-The optimal number of k might be 7. 
+The concept of elbow method is that it will suggest an optimal k in a way that any additional cluster will not affect the statistics significantly. 
 
 
-#### 6.3.2 Silhouette Method
+**Silhouette Method**
 
 This method uses average silhouette width to determine the optimal number of k. A high average silhouette width means good clustering. Additionally, the algorithm will suggest the best k for the credit card dataset, which is 9, although k-7 was also not too bad in term of average silhouette width and is not too far away k-9.
 
+
 ```{r}
-fviz_nbclust(cc.scale, 
-             FUNcluster = kmeans, 
-             method = "silhouette")
+fviz_nbclust(cc.scale, FUNcluster = clara, method = "silhouette")
 ```
-Base on the suggestions gained from Elbow and Silhouette method, I have decided to use 7 as the optimal number of k. 
+
+**Analysing the result**
+
+According to the suggested number of clusters, I will go for the cluster number of 2.
+
+Adding the cluster to the scaled original data:
+
+```{r, fig.height=12, fig.width=12}
+
+# 1 Radar plot 
+
+clara_k2 <- cbind(as.data.frame(cc.scale), 
+                  cluster = res.clara2$clustering) %>%  # merge scaled data with clusters
+  mutate(cluster = as.factor(cluster)) %>% 
+  relocate(cluster, .before = Balance)
+
+g1 <- ggRadar(clara_k2, aes(group = cluster),
+        size = 1,
+        use.label = T, 
+        rescale = F) +        
+  # Use scaled data to plot Radar, do not normalise btw 1-0 by rescale = T.
+  # scaled data better show subtle trends
+  theme_bw()
+
+
+# 2 Parallel coordinate
+
+clara_k2_2 <- clara_k2 %>%           # merge original cleaned data with clusters
+  group_by(cluster) %>% 
+  summarise_all(median)
+
+g2 <- ggparcoord(clara_k2_2, 
+           column = c(2:17),
+           groupColumn = "cluster",
+           scale = "globalminmax", showPoints = T) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+
+# 3 
+
+
+
+
+plot_grid(g1, g2,
+          nrow = 2)
+
+```
+
+```{r}
+clara_k2
+```
+
+```{r}
+
+clara.pca <- PCA(clara_k2, graph = F, quali.sup = 1)
+
+fviz_
+
+```
+
+```{r}
+
+df <- clara_k2[1:20,]
+df
+
+res.pca <- PCA(df,
+               quali.sup = 1,
+               graph = F)
+
+fviz_pca_var(res.pca,
+             col.v)
+
+
+```
+
+
 
 
 
@@ -472,7 +640,7 @@ Visualising the clusters:
 
 ```{r}
 
-fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
+fviz_cluster(res.fanny, geom = "point", repel = T,
              palette = "jco")
 
 
@@ -534,46 +702,6 @@ plot_grid(pg1, mc3,
 
 ```
 
-### DESCAN
-
-
-
-### Obtaining optimal eps value
-
-```{r}
-kNNdistplot(cc.scale, k = 7) 
-abline(h = 3, lty = 2)
-
-```
-
-Using 3 as the epsilon.
-
-Now, left with 
-
-
-
-```{r}
-f <- dbscan(cc.scale, eps = 2.5, MinPts = 3)
-
-```
-
-
-
-```{r}
-fviz_cluster(f, cc.scale, geom = "point")
-
-```
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -587,11 +715,15 @@ fviz_cluster(f, cc.scale, geom = "point")
 
 ## REFERENCE
 
-Alboukadel Kassambara 2017， *Practical Guide to Cluster Analysis in R*, Multivariate Analysis 1, Edition 1, sthda.com
+Arjun Bhasin 2018, *Credit card Dataset for Clustering*, viewed 10 May 2022, https://www.kaggle.com/datasets/arjunbhasin2013/ccdata
 
+Alboukadel Kassambara 2017, *Practical Guide to Cluster Analysis in R*, Multivariate Analysis 1, Edition 1, sthda.com
 
+Clustering and dimensionality reduction techniques on the Berlin Airbnb data and the problem of mixed data (n.d.),viewed 15 May 2022 https://rstudio-pubs-static.s3.amazonaws.com/579984_6b9efbf84ee24f00985c29e24265d2ba.html
 
+Jenny Listman 2019, *Customer Segmentation / K Means Clustering*, viewed 14 May 2022, https://www.kaggle.com/code/jennylistman/customer-segmentation-k-means-clustering
 
+Matt.0 2019, *10 Tips for Choosing the Optimal Number of Clusters*, viewed 12 May 2022, https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92
 
 
 

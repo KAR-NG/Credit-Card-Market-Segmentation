@@ -1,0 +1,115 @@
+---
+title: "a"
+author: "Kar"
+date: '2022-05-18'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+
+name <- c("Lucy", "Kar", "Ruby", "Max", "Linda", "Brian")
+cluster <- c(1,1,1,2,2,2)
+study.score <- c(4.9, 4.4, 4.7, 2.3, 2.4, 1.9)
+exercise.score <- c(20, 25, 30, 89, 79, 91)
+honesty.score <- c(89, 78, 91, 79, 81, 87)
+weekly.pocket.money <- c(300, 250, 3000, 200, 300, 250)
+
+my.class <- data.frame(name, cluster, study.score, exercise.score, honesty.score, weekly.pocket.money)
+my.class <- my.class %>% 
+  mutate(cluster = as.factor(cluster)) 
+
+my.class
+
+```
+
+my.class scaled:
+
+```{r}
+my.class.scaled <- my.class %>% 
+  mutate_if(is.numeric, scale)
+```
+
+
+
+
+```{r, fig.height=10, fig.width=10}
+# No scale on original data
+
+g1 <- ggRadar(my.class, aes(group = "cluster"), rescale = F, use.label = F) +
+  facet_wrap(~cluster) + labs(title = "No scale , No scale")
+
+g2 <- ggRadar(my.class, aes(group = "cluster"), rescale = T, use.label = F) +
+  facet_wrap(~cluster) + labs(title = "No scale , scale")
+
+g3 <- ggRadar(my.class.scaled, aes(group = "cluster"), rescale = F, use.label = F) +
+  facet_wrap(~cluster) + labs(title = "scale , No scale")
+
+g4 <- ggRadar(my.class.scaled, aes(group = "cluster"), rescale = T, use.label = F) +
+  facet_wrap(~cluster) + labs(title = "scale , scale")
+
+
+plot_grid(g1, g2, g3, g4,
+          ncol = 2,
+          nrow = 2)
+
+```
+
+
+
+
+
+```{r}
+my.class
+
+```
+
+
+```{r}
+ggparcoord(my.class,
+           columns = 3:6,
+           groupColumn = "cluster",
+           showPoints = T)
+
+```
+
+
+
+# biplot
+
+```{r}
+
+df <- my.class %>% 
+  column_to_rownames(var = "name") %>% 
+  mutate_if(is.numeric, scale)
+
+my.pca <- PCA(df, graph = F,
+              quali.sup = 1)
+
+
+fviz_pca_biplot(my.pca,
+                repel = T,
+                col.ind = df$cluster,
+                palette = "jco",
+                addEllipses = T, 
+                ellipse.type = "confidence",
+                ellipse.level = 0.95,
+                col.var = "black",
+                mean.point = F)
+
+
+```
+
+
+There are two clusters over here:
+
+* Cluster 1, the observations are having 
+
+```{r}
+
+```
+
+
+
+
