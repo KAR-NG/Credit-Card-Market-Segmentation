@@ -1,5 +1,5 @@
 ---
-title: "Credit Card Market Segmentation"
+title: "Credit Card Clustering for Market Segmentation"
 author: "Kar Ng"
 date: '2022-05'
 output: 
@@ -9,7 +9,36 @@ output:
 always_allow_html: yes
 ---
 
+***
+
+!()[https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic2_thumbnail.png]
+
+***
+
+
 ## 1 SUMMARY
+
+This project is trying to cluster a big credit card dataset that has 17 variables and 9000 rows of data. Prior to clustering, the dataset was cleaned, featured-selected using R-squared for multicollinearity assessment, and transformed via standardisation. 
+
+Principal component analysis (PCA) was used for exploratory data analysis (EDA) and found that the amount of transaction for cash in advance, credit limit, magnitude of payments paid back to the credit card company, magnitude of purchases made, and the percentage of full payment made by credit card users are important variables (or known as features) to look at in this analysis. Other variables can be important supportive information such as preference of making minimum payments and purchase frequency in oneoff-nature or installment-nature. 
+
+5 different machine learning clustering algorithms are performed, which are Clustering for Large Application (CLARA), Hierarchical K-means Clustering Hybrid (HKmeans), Fuzzy clustering, Model-based Clustering, Density-Based Spatial Clustering for Application with Noise (DBSCAN). Analysis outcome shows that VEV model suggested by model-based clustering is the best clustering model that is able to detect 8 distinct group of credit card users, which is also the largest amount suggested compared to other algorithms. These groups are:
+
+Cluster 1: Less active user that prefer cash-in-advance.   
+Cluster 2: Less active user that prefer to use credit card to make purchases, especially installment purchases.   
+Cluster 3: Revolvers who prefer to make expensive purchases.  
+Cluster 4: Less active users who prefer to make full repayment back to credit card company.      	  
+Cluster 5: Active card users who make expensive purchases and make repayment in big amount sometime they prefer full payment, sometime they pay minimum payments.    
+Cluster 6: Max payers who prefer to pay money owe in full with zero tenure.    
+Cluster 7: Less active revolvers, they spend small amount of money to purchase cheaper products.   
+Cluster 8: Max Payer but this users group is more active in making purchases than cluster 6.    
+
+
+
+*Highlight*
+
+![](https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic1_highlight.png)
+
 
 ## 2 R PACKAGES
 
@@ -34,6 +63,7 @@ library(FactoMineR)
 library(ggiraphExtra)   # for radar 
 library(GGally)         # for ggparcoord
 library(caret)          # findCorrelation
+library(ggrepel)
 
 ```
 
@@ -220,11 +250,11 @@ nrow(cc)
 
 ```
 
-## 5 EDA
+## 6 EDA
 
 During Exploratory Data Analysis (EDA), trends in the dataset will be explored and the data would be transformed if required.
 
-### 5.1 Histogram
+### 6.1 Histogram
 
 A histogram is plotted to investigate the distribution of the data. 
 
@@ -256,7 +286,7 @@ ggplot(df5.1, aes(x = my.value, fill = my.variable)) +
 Many columns that is skewed and having large values. Usually, one would log these variables, however, since I will transform them using standardisation in later section, I will not log-transform them. 
 
 
-### 5.2 Correlation Check
+### 6.2 Correlation Check
 
 Following plot shows the relationship between variables. Correlated variables means redundancy and I will be removing variables from any variable pairs that have a correlation value greater than a certain threshold. I will be using 0.8 as the cut-off point.
 
@@ -315,7 +345,7 @@ names(cc) %>%
 Now, the total number of variables from the dataset has been reduced from 17 to only 10. The 7 highly correlated variables have been removed.
 
 
-### 5.3 PCA
+### 6.3 PCA
 
 In this section, I will use principal component analysis (PCA) to explore the data.
 
@@ -386,7 +416,7 @@ It is possible that, during clustering, which is another branch of unsupervised 
 
 These will be investigated in the next section, clustering, by several type of clustering algorithms.
 
-## 6 CLUSTERING
+## 7 CLUSTERING
 
 The dataset must meet several conditions prior to be clustered,
 
@@ -400,7 +430,7 @@ There are different type of clustering methods such as partitioning clustering w
 
 Partitioning and hierarchical clustering methods are alternative to each other, and although automation with selection statistics are available to choose the best algorithm for the dataset but I will not perform it here as the data size is too large to handle within a reasonable time frame. However, proper steps of clustering will be performed along with several advanced clustering techniques.
 
-### 6.1 Cluster-Tendency Assessment
+### 7.1 Cluster-Tendency Assessment
 
 A big issue with clustering techniques is that it will always return clusters even if there is no any cluster in the dataset. Therefore, clustering tendency assessment is an important step to test whether the dataset can be clustered.
 
@@ -428,7 +458,7 @@ get_clust_tendency(cc.scale, n = 100, graph = F)
 
 ```
 
-### 6.2 CLARA
+### 7.2 CLARA
 
 I have picked CLARA as the clustering algorithm to perform for this dataset because this dataset has more than thousand of observations (Alboukadel Kassambara 2017). CLARA stands for "Clustering Large Application", which is an extension of PAM (Partitioning Around Medoid), and PAM is a robust alternative to the K-mean clustering because it is less sensitive to outlier.
 
@@ -572,7 +602,7 @@ clara_k6 <- cbind(as.data.frame(cc.scale),
 ggRadar(clara_k6, aes(group = cluster),
         size = 1, 
         use.label = F,  
-        rescale = T) +        
+        rescale = F) +        
   # Use scaled data to plot Radar, do not normalise btw 1-0 by rescale = T.
   # scaled data better show subtle trends
   theme_bw() +
@@ -590,6 +620,8 @@ Following show the median of each variable in each cluster. I plot them to aid i
 
 ```{r, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
 
+set.seed(123)
+
 clara_k6_median <- clara_k6 %>% 
                    as.data.frame() %>% 
                    group_by(cluster) %>% 
@@ -602,10 +634,10 @@ ggparcoord(clara_k6_median,
            showPoints = T) +
   theme_bw() + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
-        legend.position = "none") +
+        legend.position = "top") +
   labs(title = "Parallel Coordinate Plot",
        subtitle = "Showing: Median of each Variable") +
-  facet_wrap(~cluster) 
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
 
 
 
@@ -624,7 +656,7 @@ Five groups of credit card users have been identified:
 **Cluster 5: Active Revolvers**, users from this group are characterised by very high level of credit card activities in term of dollars scale. The variables "Purchases" and "Payments" were in dollars unit. Users in this group spend bigger amount of money in their purchases, they have also the highest level of cash in advance transaction, they make repayment back in big amount, and they have a low level of full payment (percentage). It seems like they do not like to pay back in full. 
 
 
-### 6.3 Hierarchical K-Means Clustering
+### 7.3 Hierarchical K-Means Clustering
 
 In this section, I will perform hkmeans, which is a method that combining K-means clustering and hierarchical clustering. It is a technique that can improve k-means results.
 
@@ -704,7 +736,7 @@ hk.cluster +
        subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 6")
   
 ```
-Plotting Radar plot to see how distinctive each of the 6 cluster is to each other. 
+Plotting Radar plot to see how distinctive each of the 2 clusters. 
 
 ```{r, fig.height=10, fig.width=10}
 
@@ -723,13 +755,40 @@ ggRadar(hk_df, aes(group = cluster),
 
 ```
 
-
-Two clusters have been identified from the entire dataset and are summarised in following manner: 
+Two clusters identified from the entire dataset have following sample size: 
 
 ```{r}
 table(res.hk$cluster)
 
 ```
+
+```{r, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+
+set.seed(123)
+
+hk_df_median <- hk_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(hk_df_median, 
+           column = c(2:11),
+           groupColumn = "cluster",
+           scale = "globalminmax", 
+           showPoints = T) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
+  labs(title = "Parallel Coordinate Plot",
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
+
+
+
+```
+
+
+*Insights:*
 
 **Cluster 1: Less-active user**. Most of the credit card users from this cluster use their credit card in an very infrequency manner.
 
@@ -737,7 +796,7 @@ table(res.hk$cluster)
 
 
 
-### 6.4 Fuzzy Clustering
+### 7.4 Fuzzy Clustering
 
 This section performs an alternative to k-mean clustering. In K-mean clustering or PAM, observations are assigned to exactly 1 cluster. However, in fuzzy clustering, each observation has a probability of belong to each cluster. Points that close to the center of a cluster will have a higher probability than points that further away. It is a technique usually used for marketing in determining preference and shopping patterns of customers in a more realistic way.
 
@@ -784,8 +843,8 @@ fviz_silhouette(res.fanny, palette = "jco")
 
 According to the above silhouette plot that is available for Fuzzy algorithm, there are a lot of noises in figure 2 and 3, and generally all 7 clusters have a relatively low silhouette level which is a statistic used to measure clustering quality. Therefore, results from following graph is recommended to be digested with caution.
 
-```{r, fig.width=12, fig.height=12}
-# 1 Radar plot 
+```{r, fig.width=8, fig.height=8}
+# Radar plot 
 
 fuz_df <- cbind(as.data.frame(cc.scale), 
                   cluster = res.fanny$clustering) %>%  # merge scaled data with clusters
@@ -805,49 +864,50 @@ ggRadar(fuz_df, aes(group = cluster),
 
 ```
 
-```{r}
 
-# Parallel coordinate
-ggparcoord(fuz_df, 
-           column = c(2:17),
+```{r, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+set.seed(123)
+
+fuz_df_median <- fuz_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(fuz_df_median, 
+           column = c(2:11),
            groupColumn = "cluster",
            scale = "globalminmax", 
            showPoints = T) +
-  theme_classic() + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
   labs(title = "Parallel Coordinate Plot",
-       subtitle = "Showing of All coordinates in each variables")
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
+
 
 
 ```
 
-Fuzzy clustering with k equal to 7 have characterise the 7 clusters in following ways:
 
-**Cluster 1**: General users without distintive features.
+Fuzzy clustering with 2 clusters have the similar characteristics as Hierarchical K-means clustering, which is having 2 clusters that group users into a group of less-active user and a group of active users. Some differences appear are:
 
-**Cluster 2**: Revolvers. This group of users are characterised by having the highest balance of credit in their credit card, they do not prefer to pay full payment and prefer to pay minimum payments. They use credit card to make various purcharses but particularly loving to use cash-in-advance.
+**Cluster 1**: The preference of using cash in advance is more obvious than the cluster 1 in HKmeans in previous section.
 
-**Cluster 3**: Active purchasers, they generally love to use credit card for various purchases, and have a high credit limit, they are in particular the group who do not like to use cash-in-advance.
+**Cluster 2**: Fuzzy clustering indicates that installment-purchases is more popular than one-off purchases. However, though both are falling the same category of "purchases". Important similarity is still preserved, users in this group is also prefer to make full repayment, and less prefer for minimum payments.  
 
-**Cluster 4**: One-off buyers, this group of card users love to use credit card for one-off payment and pay back with a tenure term.
 
-**Cluster 5**: Non-Payers, they have balance in their account, but have the lowest level of balance frequency, which is the frequency of balance update when purchases are made or when payments are paid.
+### 7.5 Model-Based Clustering
 
-**Cluster 6**: Zero tenure users, this group is characterised by zero tenure term.
+Model-based clustering also computes probabilities for each observation. However, this model-based clustering will suggest us the best k.
 
-**Cluster 7**: Max payer, this group of users prefer to pay full payment back to credit card company and this explains why this group of users have the least balance in their credit card.
-
-### 6.5 Model-Based Clustering
-
-Model-based clustering also compute k-probabilities for each observation. However, this model-based clustering will suggest us the best k, as compared to hkmeans and fuzzy.
-
-Algorithm used in this model-based clustering is called Expectation-Maximisation algorithm (EM). In this algorithm, data are considered as coming from a mixture of two or more clusters, and all clusters may have a mixture of density.
+Algorithm used in this model-based clustering is called Expectation-Maximization algorithm (EM). In this algorithm, data are considered as coming from a mixture of two or more clusters, and all clusters may have a mixture of density.
 
 The algorithm starts by hierarchical model-based clustering, and cut the dendrogram for different number of k. In each k, each cluster is centered at the means with increase density for points near the mean.
 
-The gemetric features (volume, shape, and orientation) of each cluster will then be determined. After this step, the similarity of volume, shape and orientation between clusters of that k will be determine using a standard parameterasation.
+The geometric features (volume, shape, and orientation) of each cluster will then be determined. After this step, the similarity of volume, shape and orientation between clusters of that k will be determine using a standard parameterasation.
 
-Following code perform the model-based clustering:
+Fitting the model-based clustering:
 
 ```{r}
 res.mc <- Mclust(cc.scale)
@@ -856,7 +916,7 @@ res.mc <- Mclust(cc.scale)
 
 The best model is determined using the Bayesian Information Criterion or BIC. A large BIC indicates good model, and the model with highest BIC will be selected.
 
-The model-based clustering selected a model with 6 clusters (k), the optimal selected model name is VEV, it means varying volume, equal shape, and varying orientation on the coordinate axes.
+The model-based clustering selected a model with 8 clusters (k), the optimal selected model name is VEV, it means clusters have varying volume, equal shape, and varying orientation on the coordinate axes.
 
 ```{r}
 summary(res.mc)
@@ -865,7 +925,7 @@ summary(res.mc)
 
 Visualising the outcome of cluster-based modeling:
 
-```{r, fig.height=8, fig.width=12}
+```{r, fig.height=8, fig.width=10}
 
 mc1 <-  fviz_mclust(res.mc, 
             what = "classification",
@@ -883,8 +943,9 @@ plot_grid(pg1, mc3,
           nrow = 2)
 
 ```
+Visualising the clustering result using Radar plot: 
 
-```{r, fig.width=8, fig.height=8}
+```{r, fig.width=14, fig.height=10}
 # df
 
 mc_df <- cbind(as.data.frame(cc.scale), 
@@ -902,52 +963,194 @@ ggRadar(mc_df, aes(group = cluster),
   # scaled data better show subtle trends
   theme_bw() +
   labs(title = "Radar plot") +
-  facet_wrap(~cluster)
+  facet_wrap(~cluster) +
+  theme(plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "mm"))
+
 
 ```
 
-```{r}
 
-# Parallel coordinate
+Alternatively, a parallel coordinate plot may help:
 
-ggparcoord(mc_df, 
+```{r, fig.width=12, fig.height=8, warning=FALSE, message=FALSE}
+set.seed(111)
+
+mc_df_median <- mc_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(mc_df_median, 
            column = c(2:11),
            groupColumn = "cluster",
            scale = "globalminmax", 
            showPoints = T) +
-  theme_classic() + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
   labs(title = "Parallel Coordinate Plot",
-       subtitle = "Showing of All coordinates in each variables")
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1) 
 
 
 ```
 
 Model-based clustering identified 4 groups of cluster with following characterisation:
 
-**Cluster 1** : Revolvers. They have the lowest level of tenure and full repayment rate, they owe credit card company a lot of money as indicated by the highest level of balance, and very low balance frequency which can be an indicator of how debt are being paid. This group of users use card for many purchases but most preferably using cash-in-advance, and therefore they are given the highest credit limit.
+Based on the median of each cluster:
 
-**Cluster 2** : Cash-user. This group of users prefer to use cash in advance and paying back but not full in amount. They have high tenure term, balance and balance frequency in their card.
+**Cluster 1: Less active user**. They don't like to use credit card that much, but slightly more prefer to use cash-in-advance. 
 
-**Cluster 3** : Max payer. Users from this group have the highest level of full payment and therefore the lowest level of balance and balance frequency. They have the lowest credit limit and relatively less active use of the company's credit card.
+**Cluster 2: Less active user**. They don't like to use credit card that much, but slightly more prefer to use credit card to make purchases, especially installment purchases. 
 
-**Cluster 4** : Purchaser. Compared to cluster 2, this user group prefer to use credit card actively for various purchases. They do not like to use cash in advance, and they like to pay full payment back to credit card company. This explains why they have lower level of balance in their card that needed to pay back the credit card company.
+**Cluster 3: Revolvers**, they prefer to make minimum payment back to credit card company, they prefer to make expensive purchases and therefore they have higher credit limit and make bigger payment back to credit card company, but they don't like to make full-payment back. 
 
-## 7 CONCLUSION
+**Cluster 4: Less active user**, but they prefer to make full payment and they very low tenure. 
 
-Many of the famous algorithm have been performed in this project, include:
+**Cluster 5: Active card users**, they buy expensive products and make big payment back to credit card company. Sometime they prefer full payment, sometime they pay minimum payments. 
 
--   CLARA from partitioning clustering, which have identified 2 distinctive group of users with its optimal number of K suggested by silhouette plot based on CLARA clustering method. Two identified groups are "Cash-in-advance users" and "Max-use Max-pay users".
+**Cluster 6: Max Payers**, but they are less active with zero level of tenure.
 
--   Hierarchical K-mean Clustering, which is considered an advanced type of clustering combining two algorithm sub-category of partitioning clustering. This algorithm identified 9 groups of users as suggested by silhouette plot based on k-mean clustering method. These 9 groups of users are "Least active users", "Cash users", "One-off users", "Average card users", "Installment users", "Inactive users", "Zero-tenure group", "Active users", and "Minimum payment users".
+**Cluster 7: Revolvers**, they less active revolvers who prefer to make minimum payment. They spend small money for purchases on cheaper products. 
 
--   Fuzzy c-mean clustering, which is a soft clustering technique that allow an observation to be able to belong to multiple clusters by given it probability value. This algorithm identified 7 groups of users which are "General users", "Revolvers", "Active purchasers", "One-off buyers", "Non-Payers", "Zero tenure users", and "Max payer".
-
--   Model-based clustering identified the most distinctive 4 groups of credit card users which are revolvers, cash-user, max payer, and purchaser.
+**Cluster 8: Max Payer**, but they are active with high level of tenure. 
 
 
+### 7.6 DBSCAN 
 
-## REFERENCE
+DBSCAN stands for Density-Based Spatial Clustering for Application with Noise. It is a method that we can easily detect and extract outliers, and cluster the observations based on their main members. 
+To compute DBSCAN algorithm, we need to specify epsilon (eps) and minimum points (MinPts).
+
+* For best "MinPts", it goes with the rules that it should be large if the dataset is large, however it must be chosen at least 3. I will work with different value of MinPts to see their effects on cluster configurations. 
+
+* For best "eps", it can also be tried out with different values, however, I will go with the KNN method. This method will compute the K-nearest neighbor distances in a matrix of points (Alboukadel Kassambara 2017). The k specified in this case is not the optimal number of clustering but the number of k-nearest neighbor, and which corresponds to MinPts. I will plot the relevant graph and look at the **"knee"** (where a sharp change is about to happen), and where is the optimal value of epsilon (eps).
+
+In my DBSCAN algorithm, I will be trying out different MinPt parameter from 3 to 8. Therefore, I computed different KNN distance plot below for respective MinPt to search for the best epsilon (eps) for each of them.   
+
+```{r, fig.width=8, fig.height=8}
+set.seed(123)
+par(mfrow = c(2,3))
+
+# 
+dbscan::kNNdistplot(cc.scale, k = 3)     # K = MinPt, K here is KNN'K
+abline(h = 1.7, lty = 2)
+text(x = 2000, y = 2.1, "1.7", col = "blue")
+mtext("1.7 is the optimal eps for 3 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 4)     # K = MinPt, K here is KNN'K
+abline(h = 1.8, lty = 2)
+text(x = 2000, y = 2.3, "1.8", col = "blue")
+mtext("1.8 is the optimal eps for 4 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 5)     # K = MinPt, K here is KNN'K
+abline(h = 2, lty = 2)
+text(x = 2000, y = 2.5, "2", col = "blue")
+mtext("2 is the optimal eps for 5 MinPt ")
+
+#
+dbscan::kNNdistplot(cc.scale, k = 6)     # K = MinPt, K here is KNN'K
+abline(h = 2, lty = 2)
+text(x = 2000, y = 2.5, "2", col = "blue")
+mtext("2 is the optimal eps for 6 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 7)     # K = MinPt, K here is KNN'K
+abline(h = 2.2, lty = 2)
+text(x = 2000, y = 2.8, "2.2", col = "blue")
+mtext("2.2 is the optimal eps for 7 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 8)     # K = MinPt, K here is KNN'K
+abline(h = 2.2, lty = 2)
+text(x = 2000, y = 2.8, "2.2", col = "blue")
+mtext("2.2 is the optimal eps for 8 MinPt ")
+
+```
+
+
+Applying above result and now start to compute DBSCAN algorithm for 6 different MinPts. 
+
+
+```{r, fig.height=10, fig.width=10}
+
+set.seed(123)
+
+dbsscan.res.eps1 <- fpc::dbscan(cc.scale, 
+                               eps = 1.7, 
+                               MinPts = 3)
+
+dbsscan.res.eps2 <- fpc::dbscan(cc.scale, 
+                               eps = 1.8, 
+                               MinPts = 4)
+
+dbsscan.res.eps3 <- fpc::dbscan(cc.scale, 
+                               eps = 2, 
+                               MinPts = 5)
+
+dbsscan.res.eps4 <- fpc::dbscan(cc.scale, 
+                               eps = 2, 
+                               MinPts = 6)
+
+dbsscan.res.eps5 <- fpc::dbscan(cc.scale, 
+                               eps = 2.2, 
+                               MinPts = 7)
+
+dbsscan.res.eps6 <- fpc::dbscan(cc.scale, 
+                               eps = 2.2, 
+                               MinPts = 8)
+
+
+g1 <- fviz_cluster(dbsscan.res.eps1,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 3 with eps at 1.7")
+g2 <- fviz_cluster(dbsscan.res.eps2,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 4 with eps at 1.8")
+g3 <- fviz_cluster(dbsscan.res.eps3,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 5 with eps at 2")
+g4 <- fviz_cluster(dbsscan.res.eps4,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 6 with eps at 2")
+g5 <- fviz_cluster(dbsscan.res.eps5,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 7 with eps at 2.2")
+g6 <- fviz_cluster(dbsscan.res.eps6,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 8 with eps at 2.2")
+
+
+plot_grid(g1, g2, g3, g4, g5, g6,
+          nrow = 3,
+          ncol = 2)
+
+
+
+```
+
+From the result above, it is observed that DBSCAN algorithm may not suitable for this dataset. DBSCAN clustering works will when different distinct clusters in the dataset have similar density of points, however, all data points are too close to each other and form a high, big dense area and which may have failed the DBSCAN algorithm.
+
+
+## 8 CONCLUSION
+
+Comparing the results from CLARA, H-Kmeans, Fuzzy, model-based, and DBSCAN clustering. The VEV model from model-based clustering is able to detect 8 k, which is the largest amount of distinct clusters compared to other clustering algorithms. 
+
+Cluster 1: Less active user that prefer cash-in-advance.   
+Cluster 2: Less active user that prefer to use credit card to make purchases, especially installment purchases.   
+Cluster 3: Revolvers who prefer to make expensive purchases.  
+Cluster 4: Less active users who prefer to make full repayment back to credit card company.      	  
+Cluster 5: Active card users who make expensive purchases and make repayment in big amount, sometime they prefer full payment, sometime they pay minimum-payments.    
+Cluster 6: Max payers who prefer to pay money owe in full with zero tenure.    
+Cluster 7: Less active revolvers, they spend small amount of money to purchase cheaper products.  
+Cluster 8: Max Payer but this users group is more active in making purchases than cluster 6.  
+
+If smaller amount of clusters is interested, the next best algorithm will be CLARA which suggests 5 groups of different credit card users, followed by 2 groups suggested by HKmeans and Fuzzy.
+
+
+
+
+*Thank you for Reading*
+
+## 9 REFERENCE
+
 
 Arjun Bhasin 2018, *Credit card Dataset for Clustering*, viewed 10 May 2022, <https://www.kaggle.com/datasets/arjunbhasin2013/ccdata>
 

@@ -1,38 +1,93 @@
-Credit card Market Segmentation by Auto-Clustering
+Credit Card Clustering for Market Segmentation
 ================
 Kar Ng
 2022-05
 
--   [1 R PACKAGES](#1-r-packages)
--   [2 INTRODUCTION](#2-introduction)
--   [3 DATA PREPARATION](#3-data-preparation)
-    -   [3.1 Data Import](#31-data-import)
-    -   [3.2 Data Description](#32-data-description)
-    -   [3.3 Data Exploration](#33-data-exploration)
--   [4 DATA CLEANING](#4-data-cleaning)
-    -   [4.1 Rename all variables](#41-rename-all-variables)
-    -   [4.2 NA Removal](#42-na-removal)
--   [5 EDA](#5-eda)
-    -   [5.1 Histogram](#51-histogram)
-    -   [5.2 Corrplot](#52-corrplot)
-    -   [5.3 PCA](#53-pca)
--   [6 CLUSTERING](#6-clustering)
-    -   [6.1 Clustering Tendency
-        Assessment](#61-clustering-tendency-assessment)
-    -   [6.2 Find Optimal K](#62-find-optimal-k)
-        -   [6.3.1 Elbow Method](#631-elbow-method)
-        -   [6.3.2 Silhouette Method](#632-silhouette-method)
-    -   [6.3 Hierarchical K-Means
-        Clustering](#63-hierarchical-k-means-clustering)
-    -   [6.4 Fuzzy Clustering](#64-fuzzy-clustering)
-    -   [6.5 Model-Based Clustering](#65-model-based-clustering)
-    -   [DESCAN](#descan)
-    -   [Obtaining optimal eps value](#obtaining-optimal-eps-value)
--   [REFERENCE](#reference)
+-   [1 SUMMARY](#1-summary)
+-   [2 R PACKAGES](#2-r-packages)
+-   [3 INTRODUCTION](#3-introduction)
+-   [4 DATA PREPARATION](#4-data-preparation)
+    -   [4.1 Data Import](#41-data-import)
+    -   [4.2 Data Description](#42-data-description)
+    -   [4.3 Data Exploration](#43-data-exploration)
+-   [5 DATA CLEANING AND
+    MANIPULATION](#5-data-cleaning-and-manipulation)
+    -   [5.1 Rename all variables](#51-rename-all-variables)
+    -   [5.2 NA Removal](#52-na-removal)
+-   [6 EDA](#6-eda)
+    -   [6.1 Histogram](#61-histogram)
+    -   [6.2 Correlation Check](#62-correlation-check)
+    -   [6.3 PCA](#63-pca)
+-   [7 CLUSTERING](#7-clustering)
+    -   [7.1 Cluster-Tendency
+        Assessment](#71-cluster-tendency-assessment)
+    -   [7.2 CLARA](#72-clara)
+    -   [7.3 Hierarchical K-Means
+        Clustering](#73-hierarchical-k-means-clustering)
+    -   [7.4 Fuzzy Clustering](#74-fuzzy-clustering)
+    -   [7.5 Model-Based Clustering](#75-model-based-clustering)
+    -   [7.6 DBSCAN](#76-dbscan)
+-   [8 CONCLUSION](#8-conclusion)
+-   [9 REFERENCE](#9-reference)
 
-## 1 R PACKAGES
+------------------------------------------------------------------------
+
+!()\[<https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic2_thumbnail.png>\]
+
+------------------------------------------------------------------------
+
+## 1 SUMMARY
+
+This project is trying to cluster a big credit card dataset that has 17
+variables and 9000 rows of data. Prior to clustering, the dataset was
+cleaned, featured-selected using R-squared for multicollinearity
+assessment, and transformed via standardisation.
+
+Principal component analysis (PCA) was used for exploratory data
+analysis (EDA) and found that the amount of transaction for cash in
+advance, credit limit, magnitude of payments paid back to the credit
+card company, magnitude of purchases made, and the percentage of full
+payment made by credit card users are important variables (or known as
+features) to look at in this analysis. Other variables can be important
+supportive information such as preference of making minimum payments and
+purchase frequency in oneoff-nature or installment-nature.
+
+5 different machine learning clustering algorithms are performed, which
+are Clustering for Large Application (CLARA), Hierarchical K-means
+Clustering Hybrid (HKmeans), Fuzzy clustering, Model-based Clustering,
+Density-Based Spatial Clustering for Application with Noise (DBSCAN).
+Analysis outcome shows that VEV model suggested by model-based
+clustering is the best clustering model that is able to detect 8
+distinct group of credit card users, which is also the largest amount
+suggested compared to other algorithms. These groups are:
+
+Cluster 1: Less active user that prefer cash-in-advance.  
+Cluster 2: Less active user that prefer to use credit card to make
+purchases, especially installment purchases.  
+Cluster 3: Revolvers who prefer to make expensive purchases.  
+Cluster 4: Less active users who prefer to make full repayment back to
+credit card company.  
+Cluster 5: Active card users who make expensive purchases and make
+repayment in big amount sometime they prefer full payment, sometime they
+pay minimum payments.  
+Cluster 6: Max payers who prefer to pay money owe in full with zero
+tenure.  
+Cluster 7: Less active revolvers, they spend small amount of money to
+purchase cheaper products.  
+Cluster 8: Max Payer but this users group is more active in making
+purchases than cluster 6.
+
+*Highlight*
+
+![](https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic1_highlight.png)
+
+## 2 R PACKAGES
+
+Following R packages are loaded for this project.
 
 ``` r
+set.seed(123)
+
 library(tidyverse)
 library(kableExtra)
 library(skimr)
@@ -46,26 +101,31 @@ library(dbscan)
 library(fpc)
 library(corrplot)
 library(FactoMineR)
+library(ggiraphExtra)   # for radar 
+library(GGally)         # for ggparcoord
+library(caret)          # findCorrelation
+library(ggrepel)
 ```
 
-## 2 INTRODUCTION
+## 3 INTRODUCTION
 
-This project will use clustering technique to develop a customer
-segmentation to define marketing strategy.
+This project will use various type of clustering techniques to develop
+customer segmentation to define marketing strategy.
 
 Dataset used in this project is called “Credit Card Dataset for
-Clustering” by Arjun Bhasin. It is a public dataset acquired from
+Clustering” by Arjun Bhasin. It is a public dataset from
 [Kaggle.com](https://www.kaggle.com/datasets/arjunbhasin2013/ccdata).
 
-The dataset has 17 behavioral information of about 9000 active credit
-card holders.
+The dataset has 17 behavioral information of 9000 active credit card
+holders.
 
-## 3 DATA PREPARATION
+## 4 DATA PREPARATION
 
-### 3.1 Data Import
+### 4.1 Data Import
 
 Following codes import the dataset and specify the first column as row’s
-name, as it is required to perform clustering.
+name. Having the first column as row name is a requirement to perform
+clustering.
 
 ``` r
 cc <- read.csv("cc_dataset.csv",
@@ -73,67 +133,635 @@ cc <- read.csv("cc_dataset.csv",
                row.names = 1)   # specificy column 1 as row name 
 ```
 
-randomly sample the first 10 rows of the dataset.
+Randomly sample the first 10 rows of the dataset.
 
 ``` r
-sample_n(cc, 10)
+sample_n(cc, 10) %>% 
+  kbl() %>% 
+  kable_material_dark()
 ```
 
-    ##            BALANCE BALANCE_FREQUENCY PURCHASES ONEOFF_PURCHASES
-    ## C19082  150.560510          0.833333    368.34           368.34
-    ## C10823    4.607593          0.181818     44.55            44.55
-    ## C17156  649.566721          1.000000    245.77           245.77
-    ## C18614  361.670150          1.000000    561.68           214.00
-    ## C10652 1803.955439          1.000000   1044.43           801.35
-    ## C13467  282.873015          1.000000    484.49           305.00
-    ## C12747 1564.396400          0.727273   1330.00             0.00
-    ## C14876  320.336250          1.000000      0.00             0.00
-    ## C19011    8.820603          0.636364    124.00             0.00
-    ## C13521  669.973636          0.545455      0.00             0.00
-    ##        INSTALLMENTS_PURCHASES CASH_ADVANCE PURCHASES_FREQUENCY
-    ## C19082                   0.00       0.0000            0.500000
-    ## C10823                   0.00       0.0000            0.083333
-    ## C17156                   0.00    1511.8944            0.083333
-    ## C18614                 347.68       0.0000            1.000000
-    ## C10652                 243.08     103.1746            0.666667
-    ## C13467                 179.49       0.0000            0.666667
-    ## C12747                1330.00    1906.4352            0.416667
-    ## C14876                   0.00    1258.9821            0.000000
-    ## C19011                 124.00       0.0000            0.545455
-    ## C13521                   0.00    1479.4406            0.000000
-    ##        ONEOFF_PURCHASES_FREQUENCY PURCHASES_INSTALLMENTS_FREQUENCY
-    ## C19082                   0.500000                         0.000000
-    ## C10823                   0.083333                         0.000000
-    ## C17156                   0.083333                         0.000000
-    ## C18614                   0.166667                         0.916667
-    ## C10652                   0.416667                         0.333333
-    ## C13467                   0.416667                         0.416667
-    ## C12747                   0.000000                         0.416667
-    ## C14876                   0.000000                         0.000000
-    ## C19011                   0.000000                         0.454545
-    ## C13521                   0.000000                         0.000000
-    ##        CASH_ADVANCE_FREQUENCY CASH_ADVANCE_TRX PURCHASES_TRX CREDIT_LIMIT
-    ## C19082               0.000000                0             4         1200
-    ## C10823               0.000000                0             1         6000
-    ## C17156               0.416667                6             1         3000
-    ## C18614               0.000000                0            14         1500
-    ## C10652               0.083333                1            23         5000
-    ## C13467               0.000000                0            15         1000
-    ## C12747               0.083333                1             6         8000
-    ## C14876               0.583333               14             0         6500
-    ## C19011               0.000000                0             6         1000
-    ## C13521               0.166667                3             0         3000
-    ##          PAYMENTS MINIMUM_PAYMENTS PRC_FULL_PAYMENT TENURE
-    ## C19082   68.24447         85.17084         0.000000      6
-    ## C10823  267.14792         88.02845         0.000000     12
-    ## C17156  432.96622        259.68095         0.000000     12
-    ## C18614  252.66452        200.79353         0.000000     12
-    ## C10652 1068.80591        518.00109         0.000000     12
-    ## C13467  341.88362        979.92060         0.083333     12
-    ## C12747 1078.90780        825.48546         0.142857     12
-    ## C14876 1746.67253        194.53921         0.083333     12
-    ## C19011  193.80446        127.38785         1.000000     11
-    ## C13521 1616.21596        121.55031         0.000000     12
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+BALANCE
+</th>
+<th style="text-align:right;">
+BALANCE_FREQUENCY
+</th>
+<th style="text-align:right;">
+PURCHASES
+</th>
+<th style="text-align:right;">
+ONEOFF_PURCHASES
+</th>
+<th style="text-align:right;">
+INSTALLMENTS_PURCHASES
+</th>
+<th style="text-align:right;">
+CASH_ADVANCE
+</th>
+<th style="text-align:right;">
+PURCHASES_FREQUENCY
+</th>
+<th style="text-align:right;">
+ONEOFF_PURCHASES_FREQUENCY
+</th>
+<th style="text-align:right;">
+PURCHASES_INSTALLMENTS_FREQUENCY
+</th>
+<th style="text-align:right;">
+CASH_ADVANCE_FREQUENCY
+</th>
+<th style="text-align:right;">
+CASH_ADVANCE_TRX
+</th>
+<th style="text-align:right;">
+PURCHASES_TRX
+</th>
+<th style="text-align:right;">
+CREDIT_LIMIT
+</th>
+<th style="text-align:right;">
+PAYMENTS
+</th>
+<th style="text-align:right;">
+MINIMUM_PAYMENTS
+</th>
+<th style="text-align:right;">
+PRC_FULL_PAYMENT
+</th>
+<th style="text-align:right;">
+TENURE
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C12536
+</td>
+<td style="text-align:right;">
+1417.9792
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+97.10606
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.285714
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1500
+</td>
+<td style="text-align:right;">
+201.4252
+</td>
+<td style="text-align:right;">
+233.5456
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C12584
+</td>
+<td style="text-align:right;">
+147.4186
+</td>
+<td style="text-align:right;">
+0.181818
+</td>
+<td style="text-align:right;">
+1074.00
+</td>
+<td style="text-align:right;">
+1074.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+0.083333
+</td>
+<td style="text-align:right;">
+0.083333
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+5500
+</td>
+<td style="text-align:right;">
+0.0000
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C18954
+</td>
+<td style="text-align:right;">
+220.9437
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+1833.34
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+1833.34
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+0.916667
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.916667
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+1000
+</td>
+<td style="text-align:right;">
+1652.7554
+</td>
+<td style="text-align:right;">
+176.8253
+</td>
+<td style="text-align:right;">
+0.818182
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C13073
+</td>
+<td style="text-align:right;">
+1820.2166
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+4877.66
+</td>
+<td style="text-align:right;">
+2341.16
+</td>
+<td style="text-align:right;">
+2536.50
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+154
+</td>
+<td style="text-align:right;">
+4500
+</td>
+<td style="text-align:right;">
+1297.9945
+</td>
+<td style="text-align:right;">
+408.2934
+</td>
+<td style="text-align:right;">
+0.166667
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C11902
+</td>
+<td style="text-align:right;">
+5941.2712
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+279.36
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+279.36
+</td>
+<td style="text-align:right;">
+905.98283
+</td>
+<td style="text-align:right;">
+0.666667
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.666667
+</td>
+<td style="text-align:right;">
+0.083333
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+16
+</td>
+<td style="text-align:right;">
+6000
+</td>
+<td style="text-align:right;">
+3140.4024
+</td>
+<td style="text-align:right;">
+2949.0011
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C13466
+</td>
+<td style="text-align:right;">
+820.1633
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+680.14
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+680.14
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+0.750000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.666667
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:right;">
+1178.2472
+</td>
+<td style="text-align:right;">
+219.8759
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C14894
+</td>
+<td style="text-align:right;">
+3755.1840
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+3211.86
+</td>
+<td style="text-align:right;">
+1420.58
+</td>
+<td style="text-align:right;">
+1791.28
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+0.750000
+</td>
+<td style="text-align:right;">
+0.833333
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+11000
+</td>
+<td style="text-align:right;">
+3198.2619
+</td>
+<td style="text-align:right;">
+960.8566
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C16933
+</td>
+<td style="text-align:right;">
+156.7233
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+1776.76
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+1776.76
+</td>
+<td style="text-align:right;">
+0.00000
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.916667
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+9600
+</td>
+<td style="text-align:right;">
+1339.3031
+</td>
+<td style="text-align:right;">
+185.2810
+</td>
+<td style="text-align:right;">
+0.916667
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C12835
+</td>
+<td style="text-align:right;">
+3057.5537
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+2037.64807
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0.250000
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+12500
+</td>
+<td style="text-align:right;">
+7265.9761
+</td>
+<td style="text-align:right;">
+847.1706
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C15251
+</td>
+<td style="text-align:right;">
+1852.6464
+</td>
+<td style="text-align:right;">
+1.000000
+</td>
+<td style="text-align:right;">
+2600.00
+</td>
+<td style="text-align:right;">
+2200.00
+</td>
+<td style="text-align:right;">
+400.00
+</td>
+<td style="text-align:right;">
+3481.13268
+</td>
+<td style="text-align:right;">
+0.333333
+</td>
+<td style="text-align:right;">
+0.166667
+</td>
+<td style="text-align:right;">
+0.083333
+</td>
+<td style="text-align:right;">
+0.083333
+</td>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+6000
+</td>
+<td style="text-align:right;">
+1362.4258
+</td>
+<td style="text-align:right;">
+727.4295
+</td>
+<td style="text-align:right;">
+0.100000
+</td>
+<td style="text-align:right;">
+12
+</td>
+</tr>
+</tbody>
+</table>
 
 The name of all variables are:
 
@@ -151,9 +779,10 @@ names(cc)
     ## [15] "MINIMUM_PAYMENTS"                 "PRC_FULL_PAYMENT"                
     ## [17] "TENURE"
 
-### 3.2 Data Description
+### 4.2 Data Description
 
-Following is the data description extracted from the kaggle website.
+Following is the data description extracted from the relevant Kaggle
+webpage.
 
 ``` r
 Variables <- c("CUSTID", "BALANCE", "BALANCEFREQUENCY", "PURCHASES", "ONEOFFPURCHASES",
@@ -181,10 +810,10 @@ Description <- c("Identification of Credit Card holder (Categorical)",
 
 data.frame(Variables, Description) %>% 
   kbl() %>% 
-  kable_styling(bootstrap_options = c("bordered", "stripped"))
+  kable_material_dark()
 ```
 
-<table class="table table-bordered" style="margin-left: auto; margin-right: auto;">
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
@@ -347,16 +976,12 @@ Tenure of credit card service for user
 </tbody>
 </table>
 
-### 3.3 Data Exploration
+### 4.3 Data Exploration
 
 **Data Size and type**
 
-The dataset contain 8950 rows and 17 variables. The “dbl” and “ind” are
-data type allocated by R to a particular column. The “dbl” stands for
-“double”, it is used for numerical variables that have decimal places.
-The “int” stands for integer, it is used for numerical variables that
-have integer values. All variables are numeric with either “dbl” and
-“int”, they will be treated the same type during analysis.
+The dataset has 8950 rows and 17 variables. Following summary displays
+data type of each column and their initial values.
 
 ``` r
 glimpse(cc)
@@ -382,45 +1007,237 @@ glimpse(cc)
     ## $ PRC_FULL_PAYMENT                 <dbl> 0.000000, 0.222222, 0.000000, 0.00000~
     ## $ TENURE                           <int> 12, 12, 12, 12, 12, 12, 12, 12, 12, 1~
 
+The “dbl” and “ind” are data type allocated by R to particular columns
+that have these characteristics. The “dbl” stands for “double”, it is
+used for numerical variables that have decimal places. The “int” stands
+for integer, it is used for numerical variables that have integer
+values.
+
+From the above summary, I can see that all variables are numeric with
+either “dbl” and “int”.
+
 **Purchases**
 
-During exploration, I found that “PURCHASES” is the sum of
-“ONEOFF_PURCHASES” and “INSTALLMENTS_PURCHASES”. It may not be important
-in this analysis.
+I found that the variable “PURCHASES” is the sum of “ONEOFF_PURCHASES”
+and “INSTALLMENTS_PURCHASES”. This finding may not be important in this
+analysis. Feature selection will be carried out in next section.
 
-Following select 10 rows among the dataset, and the new variable
-“MY_PURCHASES” proves my finding, which is the same as the “PURCHASES”,
-and is the sum of “ONEOFF_PURCHASES” and “INSTALLMENTS_PURCHASES”.
+Following codes select 10 rows among the dataset, and the temporary new
+variable “MY_PURCHASES” (only in this section) proves my finding, which
+has the same values as the “PURCHASES”.
 
 ``` r
 cc %>% 
   top_n(10, BALANCE) %>% 
   dplyr::select(ONEOFF_PURCHASES, INSTALLMENTS_PURCHASES, PURCHASES) %>% 
-  mutate(MY_PURCHASES = ONEOFF_PURCHASES + INSTALLMENTS_PURCHASES)
+  mutate(MY_PURCHASES = ONEOFF_PURCHASES + INSTALLMENTS_PURCHASES) %>% 
+  kbl() %>% 
+  kable_material_dark()
 ```
 
-    ##        ONEOFF_PURCHASES INSTALLMENTS_PURCHASES PURCHASES MY_PURCHASES
-    ## C10144          9449.07               12560.85  22009.92     22009.92
-    ## C10544           529.30                   0.00    529.30       529.30
-    ## C10609          7564.81                 258.93   7823.74      7823.74
-    ## C10914             0.00                   0.00      0.00         0.00
-    ## C12434             0.00                1168.75   1168.75      1168.75
-    ## C14256          3657.30                1630.98   5288.28      5288.28
-    ## C14836           717.24                   0.00    717.24       717.24
-    ## C15429           105.30                 579.44    684.74       684.74
-    ## C15642             0.00                1770.57   1770.57      1770.57
-    ## C16812          3582.45                1442.23   5024.68      5024.68
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+ONEOFF_PURCHASES
+</th>
+<th style="text-align:right;">
+INSTALLMENTS_PURCHASES
+</th>
+<th style="text-align:right;">
+PURCHASES
+</th>
+<th style="text-align:right;">
+MY_PURCHASES
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C10144
+</td>
+<td style="text-align:right;">
+9449.07
+</td>
+<td style="text-align:right;">
+12560.85
+</td>
+<td style="text-align:right;">
+22009.92
+</td>
+<td style="text-align:right;">
+22009.92
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10544
+</td>
+<td style="text-align:right;">
+529.30
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+529.30
+</td>
+<td style="text-align:right;">
+529.30
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10609
+</td>
+<td style="text-align:right;">
+7564.81
+</td>
+<td style="text-align:right;">
+258.93
+</td>
+<td style="text-align:right;">
+7823.74
+</td>
+<td style="text-align:right;">
+7823.74
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10914
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C12434
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+1168.75
+</td>
+<td style="text-align:right;">
+1168.75
+</td>
+<td style="text-align:right;">
+1168.75
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C14256
+</td>
+<td style="text-align:right;">
+3657.30
+</td>
+<td style="text-align:right;">
+1630.98
+</td>
+<td style="text-align:right;">
+5288.28
+</td>
+<td style="text-align:right;">
+5288.28
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C14836
+</td>
+<td style="text-align:right;">
+717.24
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+717.24
+</td>
+<td style="text-align:right;">
+717.24
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C15429
+</td>
+<td style="text-align:right;">
+105.30
+</td>
+<td style="text-align:right;">
+579.44
+</td>
+<td style="text-align:right;">
+684.74
+</td>
+<td style="text-align:right;">
+684.74
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C15642
+</td>
+<td style="text-align:right;">
+0.00
+</td>
+<td style="text-align:right;">
+1770.57
+</td>
+<td style="text-align:right;">
+1770.57
+</td>
+<td style="text-align:right;">
+1770.57
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C16812
+</td>
+<td style="text-align:right;">
+3582.45
+</td>
+<td style="text-align:right;">
+1442.23
+</td>
+<td style="text-align:right;">
+5024.68
+</td>
+<td style="text-align:right;">
+5024.68
+</td>
+</tr>
+</tbody>
+</table>
 
 **Missing values check**
 
-Again, proven by other function that the tables have 8950 rows of data
-and 17 variables. All variables are numerical, and, by examining the
-variables “n_missing” and “complete_rate” in following tables, there is
-1 missing value in the variable “CREDIT_LIMIT” and 313 in the
-“MINIMUM_PAYMENTS”. These missing values need to be handled.
+By examining the variables “n_missing” and “complete_rate” in following
+tables, there is:
+
+-   1 missing value in the variable “CREDIT_LIMIT”
+-   313 missing values in the “MINIMUM_PAYMENTS”
 
 ``` r
-skim_without_charts(cc)
+skim_without_charts(cc) 
 ```
 
 <table style="width: auto;" class="table table-condensed">
@@ -1088,29 +1905,162 @@ TENURE
 Alternatively, following code performs the missing-value check.
 
 ``` r
-colSums(is.na(cc))
+colSums(is.na(cc)) %>% 
+  kbl(col.names = "Numbers of Missing Values") %>% 
+  kable_material_dark(full_width = F)
 ```
 
-    ##                          BALANCE                BALANCE_FREQUENCY 
-    ##                                0                                0 
-    ##                        PURCHASES                 ONEOFF_PURCHASES 
-    ##                                0                                0 
-    ##           INSTALLMENTS_PURCHASES                     CASH_ADVANCE 
-    ##                                0                                0 
-    ##              PURCHASES_FREQUENCY       ONEOFF_PURCHASES_FREQUENCY 
-    ##                                0                                0 
-    ## PURCHASES_INSTALLMENTS_FREQUENCY           CASH_ADVANCE_FREQUENCY 
-    ##                                0                                0 
-    ##                 CASH_ADVANCE_TRX                    PURCHASES_TRX 
-    ##                                0                                0 
-    ##                     CREDIT_LIMIT                         PAYMENTS 
-    ##                                1                                0 
-    ##                 MINIMUM_PAYMENTS                 PRC_FULL_PAYMENT 
-    ##                              313                                0 
-    ##                           TENURE 
-    ##                                0
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Numbers of Missing Values
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+BALANCE
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+BALANCE_FREQUENCY
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ONEOFF_PURCHASES
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+INSTALLMENTS_PURCHASES
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_FREQUENCY
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ONEOFF_PURCHASES_FREQUENCY
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_INSTALLMENTS_FREQUENCY
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE_FREQUENCY
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE_TRX
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_TRX
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CREDIT_LIMIT
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PAYMENTS
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MINIMUM_PAYMENTS
+</td>
+<td style="text-align:right;">
+313
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PRC_FULL_PAYMENT
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TENURE
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+</table>
 
-There are 8950 rows of data and I will still have 96.5% of data left
+There are 8950 rows of data and I will still have 96.5% of data remain
 after removal of these missing values and therefore I will simply remove
 these missing values for the simplicity of this project.
 
@@ -1118,17 +2068,17 @@ Typically, missing value can be handled by either removal, replaced with
 mean, median, or using imputation algorithm such as KNN or bagging
 algorithm. These techniques are usually performed when there are too
 many missing values in important variables. For example, when missing
-values is higher than 5% and less than 60%.
+values of a variable is higher than 5% but less than 60%.
 
 **Summary**
 
 Visualising the statistical distribution of each variable:
 
 ``` r
-summary(cc) %>% kbl() %>% kable_styling(bootstrap_options = c("bordered", "stripped"))
+summary(cc) %>% kbl() %>% kable_material_dark()
 ```
 
-<table class="table table-bordered" style="margin-left: auto; margin-right: auto;">
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:left;">
@@ -1575,28 +2525,117 @@ NA
 </tbody>
 </table>
 
-## 4 DATA CLEANING
+## 5 DATA CLEANING AND MANIPULATION
 
-### 4.1 Rename all variables
+### 5.1 Rename all variables
 
 The name of all variables are in capital form and which would be
 difficult to read for readers and also myself.
 
 ``` r
-colnames(cc)
+colnames(cc) %>% 
+  kbl(col.names = "Variables") %>% 
+  kable_material_dark()
 ```
 
-    ##  [1] "BALANCE"                          "BALANCE_FREQUENCY"               
-    ##  [3] "PURCHASES"                        "ONEOFF_PURCHASES"                
-    ##  [5] "INSTALLMENTS_PURCHASES"           "CASH_ADVANCE"                    
-    ##  [7] "PURCHASES_FREQUENCY"              "ONEOFF_PURCHASES_FREQUENCY"      
-    ##  [9] "PURCHASES_INSTALLMENTS_FREQUENCY" "CASH_ADVANCE_FREQUENCY"          
-    ## [11] "CASH_ADVANCE_TRX"                 "PURCHASES_TRX"                   
-    ## [13] "CREDIT_LIMIT"                     "PAYMENTS"                        
-    ## [15] "MINIMUM_PAYMENTS"                 "PRC_FULL_PAYMENT"                
-    ## [17] "TENURE"
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Variables
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+BALANCE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+BALANCE_FREQUENCY
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ONEOFF_PURCHASES
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+INSTALLMENTS_PURCHASES
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_FREQUENCY
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ONEOFF_PURCHASES_FREQUENCY
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_INSTALLMENTS_FREQUENCY
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE_FREQUENCY
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CASH_ADVANCE_TRX
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PURCHASES_TRX
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CREDIT_LIMIT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PAYMENTS
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MINIMUM_PAYMENTS
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PRC_FULL_PAYMENT
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TENURE
+</td>
+</tr>
+</tbody>
+</table>
 
-Following code transforms all the name into reading-friendly form.
+Following code transforms all the names into reader-friendly form.
 
 ``` r
 cc <- cc %>% 
@@ -1606,23 +2645,112 @@ cc <- cc %>%
 Checking again the name of each variable.
 
 ``` r
-colnames(cc)
+colnames(cc) %>% 
+  kbl(col.names = "Variables") %>% 
+  kable_material_dark()
 ```
 
-    ##  [1] "Balance"                          "Balance_frequency"               
-    ##  [3] "Purchases"                        "Oneoff_purchases"                
-    ##  [5] "Installments_purchases"           "Cash_advance"                    
-    ##  [7] "Purchases_frequency"              "Oneoff_purchases_frequency"      
-    ##  [9] "Purchases_installments_frequency" "Cash_advance_frequency"          
-    ## [11] "Cash_advance_trx"                 "Purchases_trx"                   
-    ## [13] "Credit_limit"                     "Payments"                        
-    ## [15] "Minimum_payments"                 "Prc_full_payment"                
-    ## [17] "Tenure"
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Variables
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Balance
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Balance_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Installments_purchases
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_installments_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_trx
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_trx
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Credit_limit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Payments
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minimum_payments
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Prc_full_payment
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tenure
+</td>
+</tr>
+</tbody>
+</table>
 
-### 4.2 NA Removal
+### 5.2 NA Removal
 
-Following code remove all the missing values in the dataset (314 rows
-among 8950 rows)
+Following code removes all the missing values in the dataset (314 rows
+among 8950 rows).
 
 ``` r
 cc <- cc %>% 
@@ -1632,50 +2760,31 @@ cc <- cc %>%
 Now, the number of rows have been reduced to 8636 from 8950.
 
 ``` r
-str(cc)
+nrow(cc)
 ```
 
-    ## 'data.frame':    8636 obs. of  17 variables:
-    ##  $ Balance                         : num  40.9 3202.5 2495.1 817.7 1809.8 ...
-    ##  $ Balance_frequency               : num  0.818 0.909 1 1 1 ...
-    ##  $ Purchases                       : num  95.4 0 773.2 16 1333.3 ...
-    ##  $ Oneoff_purchases                : num  0 0 773 16 0 ...
-    ##  $ Installments_purchases          : num  95.4 0 0 0 1333.3 ...
-    ##  $ Cash_advance                    : num  0 6443 0 0 0 ...
-    ##  $ Purchases_frequency             : num  0.1667 0 1 0.0833 0.6667 ...
-    ##  $ Oneoff_purchases_frequency      : num  0 0 1 0.0833 0 ...
-    ##  $ Purchases_installments_frequency: num  0.0833 0 0 0 0.5833 ...
-    ##  $ Cash_advance_frequency          : num  0 0.25 0 0 0 0 0 0 0 0 ...
-    ##  $ Cash_advance_trx                : int  0 4 0 0 0 0 0 0 0 0 ...
-    ##  $ Purchases_trx                   : int  2 0 12 1 8 64 12 5 3 12 ...
-    ##  $ Credit_limit                    : num  1000 7000 7500 1200 1800 13500 2300 7000 11000 1200 ...
-    ##  $ Payments                        : num  202 4103 622 678 1400 ...
-    ##  $ Minimum_payments                : num  140 1072 627 245 2407 ...
-    ##  $ Prc_full_payment                : num  0 0.222 0 0 0 ...
-    ##  $ Tenure                          : int  12 12 12 12 12 12 12 12 12 12 ...
-    ##  - attr(*, "na.action")= 'omit' Named int [1:314] 4 46 48 55 56 57 64 94 95 98 ...
-    ##   ..- attr(*, "names")= chr [1:314] "C10004" "C10047" "C10049" "C10056" ...
+    ## [1] 8636
 
-## 5 EDA
+## 6 EDA
 
-### 5.1 Histogram
+During Exploratory Data Analysis (EDA), trends in the dataset will be
+explored and the data would be transformed if required.
 
-**Distribution Study**
+### 6.1 Histogram
 
-A primary exploratory data analysis is suggested to quickly understand
-the general distribution of the data.
+A histogram is plotted to investigate the distribution of the data.
 
 ``` r
 # data frame
 
-cc2 <- cc %>% 
+df5.1 <- cc %>% 
   pivot_longer(c(1:17), 
                names_to = "my.variable", 
                values_to = "my.value")
 
 # graphs
 
-ggplot(cc2, aes(x = my.value, fill = my.variable)) +
+ggplot(df5.1, aes(x = my.value, fill = my.variable)) +
   geom_histogram(color = "black") +
   facet_wrap(~my.variable, scale = "free") +
   theme_minimal() +
@@ -1689,32 +2798,1203 @@ ggplot(cc2, aes(x = my.value, fill = my.variable)) +
 
 ![](cc_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
-Most of the variables follow Pareto trend (80:20 rule) with majority of
-the data belong to one side of the value. it can be seem quite hard to
-group the data and categories the data into several distinct group for
-marketing purposes.
+Many columns that is skewed and having large values. Usually, one would
+log these variables, however, since I will transform them using
+standardisation in later section, I will not log-transform them.
 
-### 5.2 Corrplot
+### 6.2 Correlation Check
 
-Following plot shows the relationship between variables.
+Following plot shows the relationship between variables. Correlated
+variables means redundancy and I will be removing variables from any
+variable pairs that have a correlation value greater than a certain
+threshold. I will be using 0.8 as the cut-off point.
+
+Graphically:
 
 ``` r
-cor_cc <- cor(cc)
+cor_cc <- cor(cc, method = "spearman")
 
-corrplot(cor_cc, type = "upper", tl.cex = 0.6)
+corrplot(cor_cc, type = "lower",
+         method = "number",
+         tl.cex = 0.6, 
+         tl.col = "purple",
+         number.cex = 0.6,
+         pch = 20)
 ```
 
 ![](cc_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
-### 5.3 PCA
+Construct a correlation table to look at relevant correlation
+statistics:
 
-This section I will use principal component analysis (PCA) to help my
-exploratory data analysis by reducing the number of variables into a few
-principal components.
+``` r
+cor_cc %>% 
+  round(2) %>% 
+  as.data.frame() %>% 
+  kbl() %>% 
+  kable_material_dark()
+```
 
-This first step is general recommended to scale the data
-(standardisation) so that variables with different units will no be
-comparable.
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Balance
+</th>
+<th style="text-align:right;">
+Balance_frequency
+</th>
+<th style="text-align:right;">
+Purchases
+</th>
+<th style="text-align:right;">
+Oneoff_purchases
+</th>
+<th style="text-align:right;">
+Installments_purchases
+</th>
+<th style="text-align:right;">
+Cash_advance
+</th>
+<th style="text-align:right;">
+Purchases_frequency
+</th>
+<th style="text-align:right;">
+Oneoff_purchases_frequency
+</th>
+<th style="text-align:right;">
+Purchases_installments_frequency
+</th>
+<th style="text-align:right;">
+Cash_advance_frequency
+</th>
+<th style="text-align:right;">
+Cash_advance_trx
+</th>
+<th style="text-align:right;">
+Purchases_trx
+</th>
+<th style="text-align:right;">
+Credit_limit
+</th>
+<th style="text-align:right;">
+Payments
+</th>
+<th style="text-align:right;">
+Minimum_payments
+</th>
+<th style="text-align:right;">
+Prc_full_payment
+</th>
+<th style="text-align:right;">
+Tenure
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Balance
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.51
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+<td style="text-align:right;">
+0.57
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.54
+</td>
+<td style="text-align:right;">
+0.55
+</td>
+<td style="text-align:right;">
+-0.06
+</td>
+<td style="text-align:right;">
+0.38
+</td>
+<td style="text-align:right;">
+0.42
+</td>
+<td style="text-align:right;">
+0.90
+</td>
+<td style="text-align:right;">
+-0.53
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Balance_frequency
+</td>
+<td style="text-align:right;">
+0.51
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+0.15
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.50
+</td>
+<td style="text-align:right;">
+-0.22
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.75
+</td>
+<td style="text-align:right;">
+0.71
+</td>
+<td style="text-align:right;">
+-0.39
+</td>
+<td style="text-align:right;">
+0.79
+</td>
+<td style="text-align:right;">
+0.69
+</td>
+<td style="text-align:right;">
+0.61
+</td>
+<td style="text-align:right;">
+-0.40
+</td>
+<td style="text-align:right;">
+-0.39
+</td>
+<td style="text-align:right;">
+0.89
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.40
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+0.75
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.21
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+0.43
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+0.60
+</td>
+<td style="text-align:right;">
+0.31
+</td>
+<td style="text-align:right;">
+0.37
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Installments_purchases
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+0.71
+</td>
+<td style="text-align:right;">
+0.21
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+0.79
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+<td style="text-align:right;">
+-0.37
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+0.78
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+-0.05
+</td>
+<td style="text-align:right;">
+0.27
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance
+</td>
+<td style="text-align:right;">
+0.57
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+-0.39
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+-0.45
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+0.94
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+<td style="text-align:right;">
+-0.41
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.27
+</td>
+<td style="text-align:right;">
+0.48
+</td>
+<td style="text-align:right;">
+-0.28
+</td>
+<td style="text-align:right;">
+-0.12
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_frequency
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.79
+</td>
+<td style="text-align:right;">
+0.43
+</td>
+<td style="text-align:right;">
+0.79
+</td>
+<td style="text-align:right;">
+-0.45
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+0.85
+</td>
+<td style="text-align:right;">
+-0.46
+</td>
+<td style="text-align:right;">
+-0.45
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+<td style="text-align:right;">
+0.29
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases_frequency
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+0.69
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+0.61
+</td>
+<td style="text-align:right;">
+0.28
+</td>
+<td style="text-align:right;">
+0.32
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_installments_frequency
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.15
+</td>
+<td style="text-align:right;">
+0.61
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+0.85
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+0.78
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+-0.09
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_frequency
+</td>
+<td style="text-align:right;">
+0.54
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+-0.40
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+-0.37
+</td>
+<td style="text-align:right;">
+0.94
+</td>
+<td style="text-align:right;">
+-0.46
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.98
+</td>
+<td style="text-align:right;">
+-0.41
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.46
+</td>
+<td style="text-align:right;">
+-0.30
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_trx
+</td>
+<td style="text-align:right;">
+0.55
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+-0.39
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+0.95
+</td>
+<td style="text-align:right;">
+-0.45
+</td>
+<td style="text-align:right;">
+-0.18
+</td>
+<td style="text-align:right;">
+-0.38
+</td>
+<td style="text-align:right;">
+0.98
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+-0.40
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.22
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+-0.30
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_trx
+</td>
+<td style="text-align:right;">
+-0.06
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+0.89
+</td>
+<td style="text-align:right;">
+0.60
+</td>
+<td style="text-align:right;">
+0.78
+</td>
+<td style="text-align:right;">
+-0.41
+</td>
+<td style="text-align:right;">
+0.92
+</td>
+<td style="text-align:right;">
+0.61
+</td>
+<td style="text-align:right;">
+0.78
+</td>
+<td style="text-align:right;">
+-0.41
+</td>
+<td style="text-align:right;">
+-0.40
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+0.28
+</td>
+<td style="text-align:right;">
+-0.03
+</td>
+<td style="text-align:right;">
+0.25
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Credit_limit
+</td>
+<td style="text-align:right;">
+0.38
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.31
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+0.28
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.19
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Payments
+</td>
+<td style="text-align:right;">
+0.42
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.40
+</td>
+<td style="text-align:right;">
+0.37
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+0.27
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.32
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.22
+</td>
+<td style="text-align:right;">
+0.28
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.37
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minimum_payments
+</td>
+<td style="text-align:right;">
+0.90
+</td>
+<td style="text-align:right;">
+0.50
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+-0.05
+</td>
+<td style="text-align:right;">
+0.48
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+<td style="text-align:right;">
+0.05
+</td>
+<td style="text-align:right;">
+-0.09
+</td>
+<td style="text-align:right;">
+0.46
+</td>
+<td style="text-align:right;">
+0.47
+</td>
+<td style="text-align:right;">
+-0.03
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+0.37
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+-0.48
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Prc_full_payment
+</td>
+<td style="text-align:right;">
+-0.53
+</td>
+<td style="text-align:right;">
+-0.22
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+0.04
+</td>
+<td style="text-align:right;">
+0.27
+</td>
+<td style="text-align:right;">
+-0.28
+</td>
+<td style="text-align:right;">
+0.29
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+0.26
+</td>
+<td style="text-align:right;">
+-0.30
+</td>
+<td style="text-align:right;">
+-0.30
+</td>
+<td style="text-align:right;">
+0.25
+</td>
+<td style="text-align:right;">
+0.02
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+-0.48
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tenure
+</td>
+<td style="text-align:right;">
+0.06
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.10
+</td>
+<td style="text-align:right;">
+0.12
+</td>
+<td style="text-align:right;">
+-0.12
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+0.08
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+<td style="text-align:right;">
+-0.10
+</td>
+<td style="text-align:right;">
+0.16
+</td>
+<td style="text-align:right;">
+0.17
+</td>
+<td style="text-align:right;">
+0.20
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+1.00
+</td>
+</tr>
+</tbody>
+</table>
+
+Following are highly correlated variables with a correlation level of
+higher than 80%, and I will be removing these redundant variables from
+the dataset.
+
+``` r
+correlated_vars <- caret::findCorrelation(x = cor_cc,
+                                          names = T,    # display detect variable names
+                                          cutoff = 0.80)
+
+correlated_vars %>% 
+  kbl(col.names = "Redundant Variables") %>% 
+  kable_styling(full_width = FALSE)
+```
+
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Redundant Variables
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Purchases_trx
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Installments_purchases
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Balance
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases
+</td>
+</tr>
+</tbody>
+</table>
+
+Update the dataset by removing correlated variables.
+
+``` r
+cc <- cc %>% 
+  select(-one_of(correlated_vars))
+
+names(cc) %>% 
+  kbl(col.names = "Active Variables") %>% 
+  kable_styling(full_width = FALSE)
+```
+
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Active Variables
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Balance_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Oneoff_purchases_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Purchases_installments_frequency
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cash_advance_trx
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Credit_limit
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Payments
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Minimum_payments
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Prc_full_payment
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tenure
+</td>
+</tr>
+</tbody>
+</table>
+
+Now, the total number of variables from the dataset has been reduced
+from 17 to only 10. The 7 highly correlated variables have been removed.
+
+### 6.3 PCA
+
+In this section, I will use principal component analysis (PCA) to
+explore the data.
+
+This first step (generally recommended) is to scale the data by
+standardisation so that variables with different units can be scaled
+down to a value between -1 to 1. This transformation will make all
+variables with various scales become comparable.
 
 ``` r
 cc.scale <- scale(cc)
@@ -1723,64 +4003,276 @@ cc.scale <- scale(cc)
 Showing the first 6 rows of the data:
 
 ``` r
-head(cc.scale)
+head(cc.scale) %>% kbl() %>% kable_material_dark()
 ```
 
-    ##           Balance Balance_frequency  Purchases Oneoff_purchases
-    ## C10001 -0.7445817       -0.37002536 -0.4291590      -0.35913949
-    ## C10002  0.7641079        0.06767501 -0.4731808      -0.35913949
-    ## C10003  0.4265777        0.50537539 -0.1164058       0.09990369
-    ## C10005 -0.3738888        0.50537539 -0.4657977      -0.34964003
-    ## C10006  0.0995451        0.50537539  0.1420539      -0.35913949
-    ## C10007 -0.4647726        0.50537539  2.7989266       3.44220252
-    ##        Installments_purchases Cash_advance Purchases_frequency
-    ## C10001             -0.3548054   -0.4686284          -0.8207213
-    ## C10002             -0.4588125    2.5684078          -1.2360673
-    ## C10003             -0.4588125   -0.4686284           1.2560039
-    ## C10005             -0.4588125   -0.4686284          -1.0283956
-    ## C10006              0.9947574   -0.4686284           0.4253143
-    ## C10007              0.2916739   -0.4686284           1.2560039
-    ##        Oneoff_purchases_frequency Purchases_installments_frequency
-    ## C10001                 -0.6862398                       -0.7171374
-    ## C10002                 -0.6862398                       -0.9264679
-    ## C10003                  2.6464980                       -0.9264679
-    ## C10005                 -0.4085128                       -0.9264679
-    ## C10006                 -0.6862398                        0.5388507
-    ## C10007                  2.6464980                        1.5855083
-    ##        Cash_advance_frequency Cash_advance_trx Purchases_trx Credit_limit
-    ## C10001             -0.6819130      -0.47940912    -0.5175930   -0.9625197
-    ## C10002              0.5569899       0.09925221    -0.5970196    0.6771649
-    ## C10003             -0.6819130      -0.47940912    -0.1204598    0.8138052
-    ## C10005             -0.6819130      -0.47940912    -0.5573063   -0.9078636
-    ## C10006             -0.6819130      -0.47940912    -0.2793130   -0.7438951
-    ## C10007             -0.6819130      -0.47940912     1.9446329    2.4534898
-    ##          Payments Minimum_payments Prc_full_payment    Tenure
-    ## C10001 -0.5439104      -0.30548994       -0.5376958 0.3551601
-    ## C10002  0.7968061       0.08768365        0.2123677 0.3551601
-    ## C10003 -0.3994801      -0.09990033       -0.5376958 0.3551601
-    ## C10005 -0.3801428      -0.26111544       -0.5376958 0.3551601
-    ## C10006 -0.1321118       0.65032579       -0.5376958 0.3551601
-    ## C10007  1.5704929      -0.28080945        2.8375934 0.3551601
+<table class=" lightable-material-dark" style="font-family: &quot;Source Sans Pro&quot;, helvetica, sans-serif; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+Balance_frequency
+</th>
+<th style="text-align:right;">
+Purchases
+</th>
+<th style="text-align:right;">
+Oneoff_purchases_frequency
+</th>
+<th style="text-align:right;">
+Purchases_installments_frequency
+</th>
+<th style="text-align:right;">
+Cash_advance_trx
+</th>
+<th style="text-align:right;">
+Credit_limit
+</th>
+<th style="text-align:right;">
+Payments
+</th>
+<th style="text-align:right;">
+Minimum_payments
+</th>
+<th style="text-align:right;">
+Prc_full_payment
+</th>
+<th style="text-align:right;">
+Tenure
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C10001
+</td>
+<td style="text-align:right;">
+-0.3700254
+</td>
+<td style="text-align:right;">
+-0.4291590
+</td>
+<td style="text-align:right;">
+-0.6862398
+</td>
+<td style="text-align:right;">
+-0.7171374
+</td>
+<td style="text-align:right;">
+-0.4794091
+</td>
+<td style="text-align:right;">
+-0.9625197
+</td>
+<td style="text-align:right;">
+-0.5439104
+</td>
+<td style="text-align:right;">
+-0.3054899
+</td>
+<td style="text-align:right;">
+-0.5376958
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10002
+</td>
+<td style="text-align:right;">
+0.0676750
+</td>
+<td style="text-align:right;">
+-0.4731808
+</td>
+<td style="text-align:right;">
+-0.6862398
+</td>
+<td style="text-align:right;">
+-0.9264679
+</td>
+<td style="text-align:right;">
+0.0992522
+</td>
+<td style="text-align:right;">
+0.6771649
+</td>
+<td style="text-align:right;">
+0.7968061
+</td>
+<td style="text-align:right;">
+0.0876836
+</td>
+<td style="text-align:right;">
+0.2123677
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10003
+</td>
+<td style="text-align:right;">
+0.5053754
+</td>
+<td style="text-align:right;">
+-0.1164058
+</td>
+<td style="text-align:right;">
+2.6464980
+</td>
+<td style="text-align:right;">
+-0.9264679
+</td>
+<td style="text-align:right;">
+-0.4794091
+</td>
+<td style="text-align:right;">
+0.8138052
+</td>
+<td style="text-align:right;">
+-0.3994801
+</td>
+<td style="text-align:right;">
+-0.0999003
+</td>
+<td style="text-align:right;">
+-0.5376958
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10005
+</td>
+<td style="text-align:right;">
+0.5053754
+</td>
+<td style="text-align:right;">
+-0.4657977
+</td>
+<td style="text-align:right;">
+-0.4085128
+</td>
+<td style="text-align:right;">
+-0.9264679
+</td>
+<td style="text-align:right;">
+-0.4794091
+</td>
+<td style="text-align:right;">
+-0.9078636
+</td>
+<td style="text-align:right;">
+-0.3801428
+</td>
+<td style="text-align:right;">
+-0.2611154
+</td>
+<td style="text-align:right;">
+-0.5376958
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10006
+</td>
+<td style="text-align:right;">
+0.5053754
+</td>
+<td style="text-align:right;">
+0.1420539
+</td>
+<td style="text-align:right;">
+-0.6862398
+</td>
+<td style="text-align:right;">
+0.5388507
+</td>
+<td style="text-align:right;">
+-0.4794091
+</td>
+<td style="text-align:right;">
+-0.7438951
+</td>
+<td style="text-align:right;">
+-0.1321118
+</td>
+<td style="text-align:right;">
+0.6503258
+</td>
+<td style="text-align:right;">
+-0.5376958
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C10007
+</td>
+<td style="text-align:right;">
+0.5053754
+</td>
+<td style="text-align:right;">
+2.7989266
+</td>
+<td style="text-align:right;">
+2.6464980
+</td>
+<td style="text-align:right;">
+1.5855083
+</td>
+<td style="text-align:right;">
+-0.4794091
+</td>
+<td style="text-align:right;">
+2.4534898
+</td>
+<td style="text-align:right;">
+1.5704929
+</td>
+<td style="text-align:right;">
+-0.2808094
+</td>
+<td style="text-align:right;">
+2.8375934
+</td>
+<td style="text-align:right;">
+0.3551601
+</td>
+</tr>
+</tbody>
+</table>
 
-Applying principal component algorithms.
+Applying PCA algorithm, and the Scree Plot implies that the first two
+components explain about 40.2% of variation and they will be used to
+construct the axes of PCA factor map.
 
 ``` r
 res.pca <- PCA(cc.scale, graph = F)
-```
 
-``` r
 fviz_screeplot(res.pca, addlabels = T, ylim = c(0, 30), barfill = "orange", barcolor = "black") +
   labs(title = "Scree Plot") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
-``` r
-27.2 + 20.4+8.9 + 7.6+6.3 +5.7 + 4.9 + 4.2 + 3.7 + 3.1
-```
-
-    ## [1] 92
+The goal of PCA is to identify direction in the dataset where the first
+two dimensions explain the most variation.
 
 ``` r
 pca1 <- fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
@@ -1797,20 +4289,55 @@ pg <- plot_grid(pca1, pca2)
 plot_grid(pg, pca3, cols = 1)
 ```
 
-    ## Warning in plot_grid(pg, pca3, cols = 1): Argument 'cols' is deprecated. Use
-    ## 'ncol' instead.
+![](cc_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
-![](cc_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+The important variables in the datasets that explain many of the
+variation are purchases, cash_advance_trx, payments, and credit limit.
 
-## 6 CLUSTERING
+These variables are the closest variables to the circumference of the
+correlation circle which indicating that they have a high cosine-square
+level and are well represented by the first two principal components
+(Dim1 and Dim2). These variables also have high contribution level
+compared to other variables, which means they are important variables in
+contributing to the factor map.
 
-The dataset must met several conditions prior to be clustered,
+PCA also reveals correlation trends among the variables in the dataset.
+Positively correlated variables are grouped together, for examples:
 
-1.  Observation as row and variable as variable, and it has been met.  
-2.  No missing values in the dataset, and it has been met.  
+-   “Purchases” and “Oneoff_purchases_frequency”  
+-   “Credit_limit” and “Payments”  
+-   “Cash_advance_trx” and “Minimum_payments”
+-   “Minimum_payments” and “Prc_full_payment” (Negative correlation)
+
+It is possible that, during clustering, which is another branch of
+unsupervised learning, these variables can be important and help forming
+distinctive groups. PCA detection of these important variables quickly
+generate some insights, such as:
+
+-   Would there be a group of credit card holders who love using credit
+    cards and have made numerous purchases, or vice versa?
+
+-   Would there be a group of credit card holders who love paying
+    minimum payment instead of paying full amount of balance that they
+    owe, or vice versa?
+
+-   Would there be a group of credit card holders who use a lot of cash
+    advance from the credit card company?
+
+These will be investigated in the next section, clustering, by several
+type of clustering algorithms.
+
+## 7 CLUSTERING
+
+The dataset must meet several conditions prior to be clustered,
+
+1.  Having observation as row and variable as variable  
+2.  No missing values in the dataset  
 3.  Standardising the data (generally recommended) to make variables
-    comparable. This step will transform the data in all variables to a
-    scale that would have 0 mean and 1 standard deviation.
+    comparable. This step will transform the values in all variables to
+    a scale that have 0 mean and 1 standard deviation.
+
+All these steps have been met.
 
 There are different type of clustering methods such as partitioning
 clustering which include “k-means clustering”, “PAM”, and “CLARA”, or
@@ -1819,16 +4346,16 @@ hierarchical clustering which include the famous “AGNES” and “DIANA”.
 Partitioning and hierarchical clustering methods are alternative to each
 other, and although automation with selection statistics are available
 to choose the best algorithm for the dataset but I will not perform it
-here, because I will perform an advanced “Hybrid” clustering technique
-for this project, called “Hierarchical K-Means Clustering (hkmeans)”.
-This technique combine both the algorithms.
+here as the data size is too large to handle within a reasonable time
+frame. However, proper steps of clustering will be performed along with
+several advanced clustering techniques.
 
-### 6.1 Clustering Tendency Assessment
+### 7.1 Cluster-Tendency Assessment
 
-There is a big issue with clustering techniques is that it will always
-return clusters even if there is no any cluster in the dataset.
-Therefore, clustering tendency assessment is an important step to test
-is there clusters in the dataset.
+A big issue with clustering techniques is that it will always return
+clusters even if there is no any cluster in the dataset. Therefore,
+clustering tendency assessment is an important step to test whether the
+dataset can be clustered.
 
 **Hopkins Statistics** is a statistical method that using probability to
 test for spatial randomness of the data. The null hypothesis is that the
@@ -1836,99 +4363,383 @@ credit card dataset is uniformly distributed, indicating no meaningful
 cluster.
 
 -   If the value of hopkins statistic is low (0 - 3), it indicates
-    regularly-spaced data  
--   if the value is around zero, it indicates random data  
--   If the value is around 0.7 to 1, it indicate clustered data
+    regularly-spaced data or being indecisive (clustered or random).  
+-   If the value is around zero, it indicates random data  
+-   If the value is around 0.7 to 1, it is a significant evidence that
+    the data might be clusterable.
 
 ``` r
+set.seed(123)
+
 hopkins(cc.scale, m = nrow(cc.scale)-1)
 ```
 
-    ## [1] 1
+    ## [1] 0.9999995
 
-The Hopkins Statistics is 1, and base on this value I can reject the
-null hypothesis and conclude that the credit card dataset is
+The Hopkins Statistics is close to 1, and base on this value I can
+reject the null hypothesis and conclude that the credit card dataset is
 significantly a clusterable data.
 
-### 6.2 Find Optimal K
+Following is the same test from other R package and should yield similar
+result. The Hopkins statistic is also closed to 1 and I can conclude
+that the dataset is significantly clusterable.
 
-This section will use two typical methods among other popular methods to
-find the optimal number of clusters (specified by “k”) that the dataset
-is able to be clustered into. All methods should recommend the same or
-highly similar value of optimal k.
+``` r
+set.seed(123)
 
-In general, the optimal k is specified by the analyst of the project,
-and it can a hard task. There is also no definite answer to say what k
-is the best, it is subjective and relying on the selection of the
-distance matrix and the parameters used for clustering the data.
+get_clust_tendency(cc.scale, n = 100, graph = F)
+```
 
-#### 6.3.1 Elbow Method
+    ## $hopkins_stat
+    ## [1] 0.9663011
+    ## 
+    ## $plot
+    ## NULL
+
+### 7.2 CLARA
+
+I have picked CLARA as the clustering algorithm to perform for this
+dataset because this dataset has more than thousand of observations
+(Alboukadel Kassambara 2017). CLARA stands for “Clustering Large
+Application”, which is an extension of PAM (Partitioning Around Medoid),
+and PAM is a robust alternative to the K-mean clustering because it is
+less sensitive to outlier.
+
+As the name of CLARA suggests, I apply CALARA because this dataset is a
+large dataset and CLARA can help to reduce computation time and RAM
+storage issue by a sampling approach. I did not pick hierarchical
+clustering (AGNES and DIANA) for this project because of the same
+reason, CLARA is designed for large application.
+
+Following perform 6 CLARA algorithms for 6 different number of K for
+exploration purposes.
+
+``` r
+res.clara2 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 2,
+                    graph = F)
+
+res.clara3 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 3,
+                    graph = F)
+
+res.clara4 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 4,
+                    graph = F)
+
+res.clara5 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 5,
+                    graph = F)
+
+res.clara6 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 6,
+                    graph = F)
+
+res.clara7 <- eclust(cc.scale, 
+                    FUNcluster = "clara",
+                    k = 7,
+                    graph = F)
+
+
+f1 <- fviz_cluster(res.clara2, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 2)")
+
+f2 <- fviz_cluster(res.clara3, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 3)")
+
+f3 <- fviz_cluster(res.clara4, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 4)")
+
+f4 <- fviz_cluster(res.clara5, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 5)")
+
+f5 <- fviz_cluster(res.clara6, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 6)")
+
+f6 <- fviz_cluster(res.clara7, show.clust.cent = F, geom = "point", alpha = 0.5, palette = "jco") + 
+  theme_classic() + labs(title = "Cluster plot (K = 7)")
+
+plot_grid(f1, f2, f3, f4, f5, f6,
+          ncol = 3,
+          nrow = 2)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+
+From the above visualisation, I can see how the data partitions change
+(or added) when K is increased. Following shows the silhouette width of
+each observation in each k.
+
+The line in the middle of the graph is the overall average silhouette
+width of each k, the higher silhouette width, the better the quality of
+a clustering or an observation.
+
+In following plots, it can be interpreted this way (Alboukadel
+Kassambara 2017):
+
+-   Observations with a large Silhouette value are very well clustered  
+-   Observations with a small silhouette value means they lies between
+    two clusters  
+-   Observations with a negative Silhouette are probably assgined to the
+    wrong cluster. However, negative values may be unavoidable.
+
+``` r
+f7 <- fviz_silhouette(res.clara2, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 6897          0.23
+    ## 2       2 1739          0.14
+
+``` r
+f8 <- fviz_silhouette(res.clara3, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 3978          0.31
+    ## 2       2 3462          0.04
+    ## 3       3 1196          0.25
+
+``` r
+f9 <- fviz_silhouette(res.clara4, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 4267          0.30
+    ## 2       2 2574          0.07
+    ## 3       3 1065          0.27
+    ## 4       4  730          0.23
+
+``` r
+f10 <- fviz_silhouette(res.clara5, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 3699          0.29
+    ## 2       2 1737          0.06
+    ## 3       3 1868          0.22
+    ## 4       4 1176          0.22
+    ## 5       5  156         -0.13
+
+``` r
+f11 <- fviz_silhouette(res.clara6, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 2054          0.45
+    ## 2       2 1842         -0.09
+    ## 3       3 1118          0.10
+    ## 4       4 1881          0.18
+    ## 5       5 1660          0.04
+    ## 6       6   81         -0.09
+
+``` r
+f12 <- fviz_silhouette(res.clara7, palette = "jco")
+```
+
+    ##   cluster size ave.sil.width
+    ## 1       1 2896          0.37
+    ## 2       2 1885          0.18
+    ## 3       3  638          0.02
+    ## 4       4 1254          0.17
+    ## 5       5 1141         -0.10
+    ## 6       6   95          0.03
+    ## 7       7  727          0.22
+
+``` r
+plot_grid(f7, f8, f9, f10, f11, f12,
+          ncol = 3,
+          nrow = 2)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+
+Above graph can be used as a reference when interpreting a result from a
+suggested optimal K.
+
+Instead of choosing the clustering manually, there are methods to
+suggest the best K. Now I will use two typical methods among other
+popular methods to find the optimal number of clusters (specified by
+“k”). All methods should recommend the same or highly similar number of
+optimal k. In general, the optimal k is specified by the analyst of the
+project, and it can be hard task. *There is also no definite answer to
+say what k is the best*, it is subjective and relying on the selection
+of the distance matrix and the parameters used for clustering the data
+(Alboukadel Kassambara 2017).
+
+**Elbow Method:**
 
 Following shows the result of Elbow method. In Elbow method, clustering
 algorithm is computed for different number of clusters (k). For each k,
-the total within sum of square (WSS) is calculated.
+the total within sum of square (WSS) is calculated. Total WSS can be
+understood as total within-cluster variation, and we want it to be
+minimised.
 
-The location of a bend (knee) is generally considered as an indicator of
-appropriate k.
+For each unit of K addition, the WSS is decreased, however the best K is
+located when the reduction rate of total WSS starts to slow down
+significantly. It is known as the location of a bend (knee), the
+location is generally considered as an indicator of appropriate k.
+
+Therefore, in following Total WSS graph, the optimal K can be either 5
+or 6.
 
 ``` r
-g1 <- fviz_nbclust(cc.scale, FUNcluster = kmeans, method = "wss")
-
-g1 + geom_vline(xintercept = 7, linetype = 2)
+fviz_nbclust(cc.scale, FUNcluster = clara, method = "wss")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
-The optimal number of k might be 7.
-
-#### 6.3.2 Silhouette Method
+**Silhouette Method**
 
 This method uses average silhouette width to determine the optimal
-number of k. A high average silhouette width means good clustering.
-Additionally, the algorithm will suggest the best k for the credit card
-dataset, which is 9, although k-7 was also not too bad in term of
-average silhouette width and is not too far away k-9.
+number of k. Average silhouette width is the y-axis in following graph,
+and which can be understood as an averaged “similarity” value of each
+point within a cluster.
+
+In each cluster, we wish observation points within a cluster are similar
+to each other and by that way, they would have high silhouette width. An
+average silhouette width is the combination of silhouette value of each
+points in a cluster. Therefore, a high average silhouette width also
+means good clustering.
+
+The silhouette method of this section suggests 4 as the optimal number
+of K for clustering because this k has the highest average silhouette
+width.
 
 ``` r
-fviz_nbclust(cc.scale, 
-             FUNcluster = kmeans, 
-             method = "silhouette")
+fviz_nbclust(cc.scale, FUNcluster = clara, method = "silhouette")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-26-1.png)<!-- --> Base on the
-suggestions gained from Elbow and Silhouette method, I have decided to
-use 7 as the optimal number of k.
+![](cc_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
-### 6.3 Hierarchical K-Means Clustering
+**Analysing the result**
 
-In this section, I will perform hkmeans, which is a method that combine
-K-means clustering and hierarchical clustering to improve k-means
-results.
+Therefore, what is the best K?
 
-The biggest limitation K-means clustering is that the final result is
+-   Elbow method suggests 5 and 6, and
+-   Average Silhouette width method suggests 4 and 5 (Average silhouette
+    width of 5 is not too far from 4 actually)
+
+Therefore, I will be taking 5 as the optimal number of cluster for CLARA
+because it is the value suggested by two methods.
+
+Following code chunk adds the clustering results to the scaled original
+data.
+
+``` r
+# set up dataframe
+clara_k6 <- cbind(as.data.frame(cc.scale), 
+                  cluster = res.clara5$clustering) %>%  # merge scaled data with clusters
+  mutate(cluster = as.factor(cluster)) %>% 
+  relocate(cluster, .before = Balance_frequency)
+
+
+# plot
+ggRadar(clara_k6, aes(group = cluster),
+        size = 1, 
+        use.label = F,  
+        rescale = F) +        
+  # Use scaled data to plot Radar, do not normalise btw 1-0 by rescale = T.
+  # scaled data better show subtle trends
+  theme_bw() +
+  labs(title = "Radar plot") + 
+  facet_wrap(~cluster) +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 7),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) 
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-31-1.png)<!-- --> Following show
+the median of each variable in each cluster. I plot them to aid
+interpretation of Radar plot above if required.
+
+``` r
+set.seed(123)
+
+clara_k6_median <- clara_k6 %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(clara_k6_median, 
+           column = c(2:11),
+           groupColumn = "cluster",
+           scale = "globalminmax", 
+           showPoints = T) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
+  labs(title = "Parallel Coordinate Plot",
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+
+Five groups of credit card users have been identified:
+
+**Cluster 1: Infrequent User**, the credit card users in this cluster do
+not like to use credit card that much, they do use occasionally, however
+they are less active compared to users in other clusters.
+
+**Cluster 2: One-off Purchasers**, credit card users in this group
+prefer to use credit card for one-off purchase and less prefer to use it
+to make installment purchase.
+
+**Cluster 3: Installment Purchasers**, credit card users in this group
+love to use credit card to make installment purchases.
+
+**Cluster 4: Max Payers**, users from this group have zero level
+“Balance_frequency” which is a variable detecting their activities with
+the credit card company. Users in this group also has a high level of
+percentage of full-payment. They prefer to pay money they owe in full.
+It may explains why they have low level of “Balance frequency”.
+
+**Cluster 5: Active Revolvers**, users from this group are characterised
+by very high level of credit card activities in term of dollars scale.
+The variables “Purchases” and “Payments” were in dollars unit. Users in
+this group spend bigger amount of money in their purchases, they have
+also the highest level of cash in advance transaction, they make
+repayment back in big amount, and they have a low level of full payment
+(percentage). It seems like they do not like to pay back in full.
+
+### 7.3 Hierarchical K-Means Clustering
+
+In this section, I will perform hkmeans, which is a method that
+combining K-means clustering and hierarchical clustering. It is a
+technique that can improve k-means results.
+
+The biggest limitation of K-means clustering is that the final result is
 subjected to the initial random selection of centroids. However, in
-hkmeans, the selection of centroid is not based on randomisation but the
-results of hierarchical clustering from the hk-mean algorithm, these
-centroids are optimiased centroids. Therefore, in hierarchical k-means
-clustering, the hierarchial clustering is being performed first,
-followed by the k-means clustering.
+hkmeans, the selection of initial centroids is not based on
+randomisation but the result of hierarchical clustering from the hk-mean
+algorithm. These centroids can be understood as optimiased centroids.
+Therefore, in hierarchical k-means clustering, the hierarchial
+clustering is being performed first, then followed by the k-means
+clustering.
 
-Following summarise the combination of the two algorithms :
+Hierarchical K-Means Clustering algorithms :
 
 -   **Step 1**: Compute hierarchical clustering with the optimal K
-    obtained from previous section. In this step, distance matrix
-    between each pair of observation is computed and based on that, a
-    linkage function is selected to group similar objects into
-    hierarchical cluster tree. Each observation are considered a cluster
-    on its on, then the forming of clustering move upward and form
-    bigger cluster, and this step continues until the root is reached.
-    Finally, the tree is cut into pre-specified K (which is 7 in this
-    case).
+    obtained from previous section (e.g., based on “WSS” of K-means). In
+    this step, distance matrix between each pair of observation is
+    computed and based on that, a linkage function is selected to group
+    similar objects into hierarchical cluster tree. Each observation are
+    considered a cluster on its on, then the forming of clustering move
+    upward and form bigger cluster, and this step continues until the
+    root is reached. Finally, the tree is cut into pre-specified K
+    (which is 7 in this case).
 
 -   **Step 2**: Compute the center (i.e. mean) of each cluster.
     Therefore, there are 7 new center here in each of the 7 clusters.
 
--   **Step 3**: Compute K-means clustering on the original normalised
+-   **Step 3**: Compute K-means clustering on the original standardised
     credit card dataset by using the set of cluster centers computed in
     step 2 as the initial cluster centers. Then, according to the
     algorithm of K-means clustering, each observations will be assigned
@@ -1937,21 +4748,44 @@ Following summarise the combination of the two algorithms :
     calculating the new mean value of all data points in the cluster.
     Finally, all observations are being re-allocated to these new means.
     The allocation of observations and the calculation of new means are
-    iterated until the total within sum of square is minimised.
+    iterated until the total within sum of square (WSS) is minimised.
 
-Following code complete the hkmeans.
+**Optimal K Search**
+
+Following silhouette method suggests 2 as the optimal K.
+
+``` r
+fviz_nbclust(cc.scale, 
+             FUNcluster = kmeans, 
+             method = "silhouette")
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-33-1.png)<!-- --> Following
+kmean-wss Elbow method also suggests the same, The rate of WSS reduction
+become slower in second K.
+
+``` r
+fviz_nbclust(cc.scale, FUNcluster = kmeans, method = "wss")
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+
+From above result of WSS and silhouette analysis, I will use 2 as the
+optimal number of K for clustering.
+
+Following code completes the hkmeans algorithm.
 
 ``` r
 # Create hierarchical k-means clustering
 
 res.hk <- hkmeans(cc.scale, 
-                 k = 7,
-                 hc.metric = "euclidean",
-                 hc.method = "ward.D2",
+                 k = 2,
+                 hc.metric = "manhattan",
+                 hc.method = "average",   # Single or Average linkage function is recommended as they are less sensitive to the skewness caused by outliers in this credit card dataset. 
                  km.algorithm = "Hartigan-Wong")
 ```
 
-The “res.hk” objects contain following results.
+The “res.hk” object contains following results.
 
 ``` r
 # Items created from the object
@@ -1963,55 +4797,110 @@ names(res.hk)
     ##  [6] "betweenss"    "size"         "iter"         "ifault"       "data"        
     ## [11] "hclust"
 
-The dataset can be clustered (grouped) in 7 clusters (group), estimated
-by this project, and these 7 clusters has following size:
+These 7 clusters have following size:
 
 ``` r
 res.hk$size
 ```
 
-    ## [1] 2717  871 2655  671 1093  599   30
+    ## [1] 6926 1710
 
-Graphical presentation of the results:
+Graphical presentation of the 6 clusters:
 
 ``` r
 hk.cluster <- fviz_cluster(res.hk,
                            palette = "jco",
-                           geom = "point") 
+                           geom = "point",
+                           alpha = 0.5) 
   
 hk.cluster + 
   theme_classic() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         plot.subtitle = element_text(hjust = 0.5)) +
   labs(title = "Hierarchical K-means Clustering Results",
-       subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 7")
+       subtitle = "Hartigan-Wong algorithm + Euclidean + ward.D2 + K = 6")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-38-1.png)<!-- --> Plotting Radar
+plot to see how distinctive each of the 2 clusters.
 
-All the observation points are being converted and plotted onto
-dimensional plots (Dim1 & Dim2). The dataset has been detected that it
-is clusterable and optimal k was estimated as 7. However, there are
-several clusters overlapping with each other, I start to question are
-points really being clustered well?
+``` r
+hk_df <- cbind(as.data.frame(cc.scale),
+               cluster = res.hk$cluster) %>% 
+  mutate(cluster = as.factor(cluster)) %>% 
+  relocate(cluster, .before = Balance_frequency)
 
-In traditional clustering such as partitioning and hierarchical
-clustering, observation points are assigned to exactly 1 cluster. In the
-next section, I will use fuzzy clustering which will give each point a
-probability value, and to see whether this algorithm will cluster the
-points better.
+ggRadar(hk_df, aes(group = cluster),
+        size = 1, 
+        rescale = F,
+        use.label = F) + 
+  theme_bw() +
+  labs(title = "Radar plot") +
+  facet_wrap(~cluster) 
+```
 
-### 6.4 Fuzzy Clustering
+![](cc_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+
+Two clusters identified from the entire dataset have following sample
+size:
+
+``` r
+table(res.hk$cluster)
+```
+
+    ## 
+    ##    1    2 
+    ## 6926 1710
+
+``` r
+set.seed(123)
+
+hk_df_median <- hk_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(hk_df_median, 
+           column = c(2:11),
+           groupColumn = "cluster",
+           scale = "globalminmax", 
+           showPoints = T) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
+  labs(title = "Parallel Coordinate Plot",
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
+
+*Insights:*
+
+**Cluster 1: Less-active user**. Most of the credit card users from this
+cluster use their credit card in an very infrequency manner.
+
+**Cluster 2: Active-user**. These credit card users are actively using
+their credit card to make purchases. One off purchases is more popular
+than installment purchases.
+
+### 7.4 Fuzzy Clustering
 
 This section performs an alternative to k-mean clustering. In K-mean
 clustering or PAM, observations are assigned to exactly 1 cluster.
 However, in fuzzy clustering, each observation has a probability of
 belong to each cluster. Points that close to the center of a cluster
-will have a higher probability than points that further away from a
-center of points that belong to other cluster.
+will have a higher probability than points that further away. It is a
+technique usually used for marketing in determining preference and
+shopping patterns of customers in a more realistic way.
+
+Computing fuzzy algorithm:
 
 ``` r
-res.fanny <- fanny(cc.scale, k = 7, metric = "euclidean", stand = FALSE, memb.exp = 1.05)
+res.fanny <- fanny(cc.scale, k = 2, 
+                   metric = "euclidean", 
+                   stand = FALSE, 
+                   memb.exp = 1.05)
 ```
 
 Showing the member coefficient
@@ -2020,35 +4909,17 @@ Showing the member coefficient
 head(res.fanny$membership, 10)
 ```
 
-    ##                [,1]         [,2]         [,3]         [,4]         [,5]
-    ## C10001 9.997912e-01 2.990219e-11 7.039757e-12 4.187260e-07 2.083663e-04
-    ## C10002 2.287256e-04 9.997696e-01 2.688884e-08 1.654131e-07 1.275554e-06
-    ## C10003 1.337068e-04 4.959093e-06 9.991519e-01 6.991478e-04 3.905206e-06
-    ## C10005 1.000000e+00 5.470772e-14 6.205105e-15 8.764325e-11 9.190969e-11
-    ## C10006 5.766380e-06 3.869240e-10 9.920858e-09 9.999938e-01 8.055125e-09
-    ## C10007 7.129527e-08 4.572558e-07 9.999703e-01 2.464026e-06 1.905579e-07
-    ## C10008 1.348625e-11 2.007367e-14 2.195489e-12 1.000000e+00 3.901130e-13
-    ## C10009 9.992619e-01 6.965812e-09 1.634613e-08 7.368415e-04 1.157814e-06
-    ## C10010 2.811555e-04 3.728391e-07 7.473246e-07 2.668597e-06 9.997146e-01
-    ## C10011 9.951349e-11 2.656408e-13 5.579472e-11 1.000000e+00 4.540880e-12
-    ##                [,6]         [,7]
-    ## C10001 1.078790e-09 6.793850e-10
-    ## C10002 2.225540e-07 1.734300e-08
-    ## C10003 1.118085e-06 5.243371e-06
-    ## C10005 2.931857e-13 9.391734e-14
-    ## C10006 6.378389e-10 4.151934e-07
-    ## C10007 1.336489e-07 2.635145e-05
-    ## C10008 9.751405e-14 1.142934e-09
-    ## C10009 3.152401e-09 5.835681e-08
-    ## C10010 2.511242e-07 2.156075e-07
-    ## C10011 1.466079e-12 1.595264e-08
-
-``` r
-head(res.fanny$coeff, 10)
-```
-
-    ## dunn_coeff normalized 
-    ##  0.9382183  0.9279213
+    ##               [,1]         [,2]
+    ## C10001 0.999999914 8.648864e-08
+    ## C10002 0.999820051 1.799489e-04
+    ## C10003 0.093730995 9.062690e-01
+    ## C10005 0.999999984 1.638830e-08
+    ## C10006 0.761181762 2.388182e-01
+    ## C10007 0.000172510 9.998275e-01
+    ## C10008 0.001644969 9.983550e-01
+    ## C10009 0.999634366 3.656337e-04
+    ## C10010 0.971929245 2.807076e-02
+    ## C10011 0.002505073 9.974949e-01
 
 Following code show the cluster that each observation belongs to
 (extracting the first 10 observations).
@@ -2058,16 +4929,16 @@ head(res.fanny$clustering, 10)
 ```
 
     ## C10001 C10002 C10003 C10005 C10006 C10007 C10008 C10009 C10010 C10011 
-    ##      1      2      3      1      4      3      4      1      5      4
+    ##      1      1      2      1      1      2      2      1      1      2
 
 Visualising the clusters:
 
 ``` r
-fviz_cluster(res.fanny, geom = "point", ellipse.type = "norm", repel = T,
+fviz_cluster(res.fanny, geom = "point", repel = T,
              palette = "jco")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
 
 Silhouette width (Si) is a type of interval cluster validation, with a
 range from 1 to -1. If an observation has a Si of closer than 1 then the
@@ -2082,27 +4953,83 @@ fviz_silhouette(res.fanny, palette = "jco")
 ```
 
     ##   cluster size ave.sil.width
-    ## 1       1 2331          0.40
-    ## 2       2 1163         -0.05
-    ## 3       3 1294         -0.12
-    ## 4       4 1571          0.23
-    ## 5       5 1003          0.21
-    ## 6       6  587          0.14
-    ## 7       7  687          0.24
+    ## 1       1 4678          0.36
+    ## 2       2 3958         -0.03
 
-![](cc_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
 
-However, I will try to use other algorithms to see if they can better
-cluster the observations in this credit card dataset.
+According to the above silhouette plot that is available for Fuzzy
+algorithm, there are a lot of noises in figure 2 and 3, and generally
+all 7 clusters have a relatively low silhouette level which is a
+statistic used to measure clustering quality. Therefore, results from
+following graph is recommended to be digested with caution.
 
-### 6.5 Model-Based Clustering
+``` r
+# Radar plot 
 
-Model-based clustering also compute k-probabilities for each
-observation. However, this model-based clustering will suggest us the
-best k, as compared to hkmeans and fuzzy.
+fuz_df <- cbind(as.data.frame(cc.scale), 
+                  cluster = res.fanny$clustering) %>%  # merge scaled data with clusters
+  mutate(cluster = as.factor(cluster)) %>% 
+  relocate(cluster, .before = Balance_frequency)
+
+
+ggRadar(fuz_df, aes(group = cluster),
+        size = 1,
+        use.label = T, 
+        rescale = F) +        
+  # Use scaled data to plot Radar, do not normalise btw 1-0 by rescale = T.
+  # scaled data better show subtle trends
+  theme_bw() +
+  labs(title = "Radar plot") +
+  facet_wrap(~ cluster)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
+
+``` r
+set.seed(123)
+
+fuz_df_median <- fuz_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(fuz_df_median, 
+           column = c(2:11),
+           groupColumn = "cluster",
+           scale = "globalminmax", 
+           showPoints = T) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
+  labs(title = "Parallel Coordinate Plot",
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->
+
+Fuzzy clustering with 2 clusters have the similar characteristics as
+Hierarchical K-means clustering, which is having 2 clusters that group
+users into a group of less-active user and a group of active users. Some
+differences appear are:
+
+**Cluster 1**: The preference of using cash in advance is more obvious
+than the cluster 1 in HKmeans in previous section.
+
+**Cluster 2**: Fuzzy clustering indicates that installment-purchases is
+more popular than one-off purchases. However, though both are falling
+the same category of “purchases”. Important similarity is still
+preserved, users in this group is also prefer to make full repayment,
+and less prefer for minimum payments.
+
+### 7.5 Model-Based Clustering
+
+Model-based clustering also computes probabilities for each observation.
+However, this model-based clustering will suggest us the best k.
 
 Algorithm used in this model-based clustering is called
-Expectation-Maximisation algorithm (EM). In this algorithm, data are
+Expectation-Maximization algorithm (EM). In this algorithm, data are
 considered as coming from a mixture of two or more clusters, and all
 clusters may have a mixture of density.
 
@@ -2110,12 +5037,12 @@ The algorithm starts by hierarchical model-based clustering, and cut the
 dendrogram for different number of k. In each k, each cluster is
 centered at the means with increase density for points near the mean.
 
-The gemetric features (volume, shape, and orientation) of each cluster
+The geometric features (volume, shape, and orientation) of each cluster
 will then be determined. After this step, the similarity of volume,
 shape and orientation between clusters of that k will be determine using
-a standard parameteration.
+a standard parameterasation.
 
-Following code perform the model-based clustering:
+Fitting the model-based clustering:
 
 ``` r
 res.mc <- Mclust(cc.scale)
@@ -2125,9 +5052,9 @@ The best model is determined using the Bayesian Information Criterion or
 BIC. A large BIC indicates good model, and the model with highest BIC
 will be selected.
 
-The model-based clustering selected a model with 6 clusters (k), the
-optimal selected model name is VEV, it means varying volume, equal
-shape, and varying orientation on the coordinate axes.
+The model-based clustering selected a model with 8 clusters (k), the
+optimal selected model name is VEV, it means clusters have varying
+volume, equal shape, and varying orientation on the coordinate axes.
 
 ``` r
 summary(res.mc)
@@ -2137,14 +5064,14 @@ summary(res.mc)
     ## Gaussian finite mixture model fitted by EM algorithm 
     ## ---------------------------------------------------- 
     ## 
-    ## Mclust VEV (ellipsoidal, equal shape) model with 6 components: 
+    ## Mclust VEV (ellipsoidal, equal shape) model with 7 components: 
     ## 
-    ##  log-likelihood    n  df     BIC      ICL
-    ##         38638.5 8636 945 68711.8 68600.14
+    ##  log-likelihood    n  df      BIC       ICL
+    ##       -23317.69 8636 407 -50324.3 -50792.31
     ## 
     ## Clustering table:
-    ##    1    2    3    4    5    6 
-    ## 1964 2482  717 1561 1092  820
+    ##    1    2    3    4    5    6    7 
+    ## 2267 1312  385 1071  357 1356 1888
 
 Visualising the outcome of cluster-based modeling:
 
@@ -2169,34 +5096,265 @@ plot_grid(pg1, mc3,
           nrow = 2)
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
-
-### DESCAN
-
-### Obtaining optimal eps value
+![](cc_files/figure-gfm/unnamed-chunk-51-1.png)<!-- --> Visualising the
+clustering result using Radar plot:
 
 ``` r
-kNNdistplot(cc.scale, k = 7) 
-abline(h = 3, lty = 2)
+# df
+
+mc_df <- cbind(as.data.frame(cc.scale), 
+                  cluster = res.mc$classification) %>%  # merge scaled data with clusters
+  mutate(cluster = as.factor(cluster)) %>% 
+  relocate(cluster, .before = Balance_frequency)
+
+# Radar plot 
+
+ggRadar(mc_df, aes(group = cluster),
+        size = 1,
+        use.label = T, 
+        rescale = F) +        
+  # Use scaled data to plot Radar, do not normalise btw 1-0 by rescale = T.
+  # scaled data better show subtle trends
+  theme_bw() +
+  labs(title = "Radar plot") +
+  facet_wrap(~cluster) +
+  theme(plot.margin = unit(c(0.1, 0.1, 0.1, 0.1), "mm"))
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-52-1.png)<!-- -->
 
-Using 3 as the epsilon.
-
-Now, left with
+Alternatively, a parallel coordinate plot may help:
 
 ``` r
-f <- dbscan(cc.scale, eps = 2.5, MinPts = 3)
+set.seed(111)
+
+mc_df_median <- mc_df %>% 
+                   as.data.frame() %>% 
+                   group_by(cluster) %>% 
+                   summarise_all(median)
+
+ggparcoord(mc_df_median, 
+           column = c(2:11),
+           groupColumn = "cluster",
+           scale = "globalminmax", 
+           showPoints = T) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        legend.position = "top") +
+  labs(title = "Parallel Coordinate Plot",
+       subtitle = "Showing: Median of each Variable") +
+  geom_text_repel(aes(label = cluster), box.padding = 0.1) 
 ```
+
+![](cc_files/figure-gfm/unnamed-chunk-53-1.png)<!-- -->
+
+Model-based clustering identified 4 groups of cluster with following
+characterisation:
+
+Based on the median of each cluster:
+
+**Cluster 1: Less active user**. They don’t like to use credit card that
+much, but slightly more prefer to use cash-in-advance.
+
+**Cluster 2: Less active user**. They don’t like to use credit card that
+much, but slightly more prefer to use credit card to make purchases,
+especially installment purchases.
+
+**Cluster 3: Revolvers**, they prefer to make minimum payment back to
+credit card company, they prefer to make expensive purchases and
+therefore they have higher credit limit and make bigger payment back to
+credit card company, but they don’t like to make full-payment back.
+
+**Cluster 4: Less active user**, but they prefer to make full payment
+and they very low tenure.
+
+**Cluster 5: Active card users**, they buy expensive products and make
+big payment back to credit card company. Sometime they prefer full
+payment, sometime they pay minimum payments.
+
+**Cluster 6: Max Payers**, but they are less active with zero level of
+tenure.
+
+**Cluster 7: Revolvers**, they less active revolvers who prefer to make
+minimum payment. They spend small money for purchases on cheaper
+products.
+
+**Cluster 8: Max Payer**, but they are active with high level of tenure.
+
+### 7.6 DBSCAN
+
+DBSCAN stands for Density-Based Spatial Clustering for Application with
+Noise. It is a method that we can easily detect and extract outliers,
+and cluster the observations based on their main members. To compute
+DBSCAN algorithm, we need to specify epsilon (eps) and minimum points
+(MinPts).
+
+-   For best “MinPts”, it goes with the rules that it should be large if
+    the dataset is large, however it must be chosen at least 3. I will
+    work with different value of MinPts to see their effects on cluster
+    configurations.
+
+-   For best “eps”, it can also be tried out with different values,
+    however, I will go with the KNN method. This method will compute the
+    K-nearest neighbor distances in a matrix of points (Alboukadel
+    Kassambara 2017). The k specified in this case is not the optimal
+    number of clustering but the number of k-nearest neighbor, and which
+    corresponds to MinPts. I will plot the relevant graph and look at
+    the **“knee”** (where a sharp change is about to happen), and where
+    is the optimal value of epsilon (eps).
+
+In my DBSCAN algorithm, I will be trying out different MinPt parameter
+from 3 to 8. Therefore, I computed different KNN distance plot below for
+respective MinPt to search for the best epsilon (eps) for each of them.
 
 ``` r
-fviz_cluster(f, cc.scale, geom = "point")
+set.seed(123)
+par(mfrow = c(2,3))
+
+# 
+dbscan::kNNdistplot(cc.scale, k = 3)     # K = MinPt, K here is KNN'K
+abline(h = 1.7, lty = 2)
+text(x = 2000, y = 2.1, "1.7", col = "blue")
+mtext("1.7 is the optimal eps for 3 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 4)     # K = MinPt, K here is KNN'K
+abline(h = 1.8, lty = 2)
+text(x = 2000, y = 2.3, "1.8", col = "blue")
+mtext("1.8 is the optimal eps for 4 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 5)     # K = MinPt, K here is KNN'K
+abline(h = 2, lty = 2)
+text(x = 2000, y = 2.5, "2", col = "blue")
+mtext("2 is the optimal eps for 5 MinPt ")
+
+#
+dbscan::kNNdistplot(cc.scale, k = 6)     # K = MinPt, K here is KNN'K
+abline(h = 2, lty = 2)
+text(x = 2000, y = 2.5, "2", col = "blue")
+mtext("2 is the optimal eps for 6 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 7)     # K = MinPt, K here is KNN'K
+abline(h = 2.2, lty = 2)
+text(x = 2000, y = 2.8, "2.2", col = "blue")
+mtext("2.2 is the optimal eps for 7 MinPt ")
+
+dbscan::kNNdistplot(cc.scale, k = 8)     # K = MinPt, K here is KNN'K
+abline(h = 2.2, lty = 2)
+text(x = 2000, y = 2.8, "2.2", col = "blue")
+mtext("2.2 is the optimal eps for 8 MinPt ")
 ```
 
-![](cc_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](cc_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
 
-## REFERENCE
+Applying above result and now start to compute DBSCAN algorithm for 6
+different MinPts.
 
-Alboukadel Kassambara 2017， *Practical Guide to Cluster Analysis in R*,
+``` r
+set.seed(123)
+
+dbsscan.res.eps1 <- fpc::dbscan(cc.scale, 
+                               eps = 1.7, 
+                               MinPts = 3)
+
+dbsscan.res.eps2 <- fpc::dbscan(cc.scale, 
+                               eps = 1.8, 
+                               MinPts = 4)
+
+dbsscan.res.eps3 <- fpc::dbscan(cc.scale, 
+                               eps = 2, 
+                               MinPts = 5)
+
+dbsscan.res.eps4 <- fpc::dbscan(cc.scale, 
+                               eps = 2, 
+                               MinPts = 6)
+
+dbsscan.res.eps5 <- fpc::dbscan(cc.scale, 
+                               eps = 2.2, 
+                               MinPts = 7)
+
+dbsscan.res.eps6 <- fpc::dbscan(cc.scale, 
+                               eps = 2.2, 
+                               MinPts = 8)
+
+
+g1 <- fviz_cluster(dbsscan.res.eps1,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 3 with eps at 1.7")
+g2 <- fviz_cluster(dbsscan.res.eps2,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 4 with eps at 1.8")
+g3 <- fviz_cluster(dbsscan.res.eps3,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 5 with eps at 2")
+g4 <- fviz_cluster(dbsscan.res.eps4,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 6 with eps at 2")
+g5 <- fviz_cluster(dbsscan.res.eps5,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 7 with eps at 2.2")
+g6 <- fviz_cluster(dbsscan.res.eps6,
+             data = cc.scale,
+             stand = F) + labs(title = "MinPts = 8 with eps at 2.2")
+
+
+plot_grid(g1, g2, g3, g4, g5, g6,
+          nrow = 3,
+          ncol = 2)
+```
+
+![](cc_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->
+
+From the result above, it is observed that DBSCAN algorithm may not
+suitable for this dataset. DBSCAN clustering works will when different
+distinct clusters in the dataset have similar density of points,
+however, all data points are too close to each other and form a high,
+big dense area and which may have failed the DBSCAN algorithm.
+
+## 8 CONCLUSION
+
+Comparing the results from CLARA, H-Kmeans, Fuzzy, model-based, and
+DBSCAN clustering. The VEV model from model-based clustering is able to
+detect 8 k, which is the largest amount of distinct clusters compared to
+other clustering algorithms.
+
+Cluster 1: Less active user that prefer cash-in-advance.  
+Cluster 2: Less active user that prefer to use credit card to make
+purchases, especially installment purchases.  
+Cluster 3: Revolvers who prefer to make expensive purchases.  
+Cluster 4: Less active users who prefer to make full repayment back to
+credit card company.  
+Cluster 5: Active card users who make expensive purchases and make
+repayment in big amount, sometime they prefer full payment, sometime
+they pay minimum-payments.  
+Cluster 6: Max payers who prefer to pay money owe in full with zero
+tenure.  
+Cluster 7: Less active revolvers, they spend small amount of money to
+purchase cheaper products.  
+Cluster 8: Max Payer but this users group is more active in making
+purchases than cluster 6.
+
+If smaller amount of clusters is interested, the next best algorithm
+will be CLARA which suggests 5 groups of different credit card users,
+followed by 2 groups suggested by HKmeans and Fuzzy.
+
+*Thank you for Reading*
+
+## 9 REFERENCE
+
+Arjun Bhasin 2018, *Credit card Dataset for Clustering*, viewed 10 May
+2022, <https://www.kaggle.com/datasets/arjunbhasin2013/ccdata>
+
+Alboukadel Kassambara 2017, *Practical Guide to Cluster Analysis in R*,
 Multivariate Analysis 1, Edition 1, sthda.com
+
+Clustering and dimensionality reduction techniques on the Berlin Airbnb
+data and the problem of mixed data (n.d.),viewed 15 May 2022
+<https://rstudio-pubs-static.s3.amazonaws.com/579984_6b9efbf84ee24f00985c29e24265d2ba.html>
+
+Jenny Listman 2019, *Customer Segmentation / K Means Clustering*, viewed
+14 May 2022,
+<https://www.kaggle.com/code/jennylistman/customer-segmentation-k-means-clustering>
+
+Matt.0 2019, *10 Tips for Choosing the Optimal Number of Clusters*,
+viewed 12 May 2022,
+<https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92>
