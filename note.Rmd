@@ -7,16 +7,21 @@ output:
   html_document: default
 ---
 
+# 1 Sample data
+
 ```{r}
 
 name <- c("Lucy", "Kar", "Ruby", "Max", "Linda", "Brian")
 cluster <- c(1,1,1,2,2,2)
 study.score <- c(4.9, 4.4, 4.7, 2.3, 2.4, 1.9)
 exercise.score <- c(20, 25, 30, 89, 79, 91)
-honesty.score <- c(89, 78, 91, 79, 81, 87)
-weekly.pocket.money <- c(300, 250, 3000, 200, 300, 250)
+honesty.score <- c(25, 78, 91, 79, 81, 87)
+weekly.pocket.money <- c(550, 600, 500, 200, 300, 250)
+distance.from.home <- c(5000, 6000, 10000, 9000, 15000, 50000)
+weight <- c(70, 65, 75, 74, 66, 135)
 
-my.class <- data.frame(name, cluster, study.score, exercise.score, honesty.score, weekly.pocket.money)
+my.class <- data.frame(name, cluster, study.score, exercise.score, honesty.score, weekly.pocket.money, distance.from.home, weight)
+
 my.class <- my.class %>% 
   mutate(cluster = as.factor(cluster)) 
 
@@ -24,91 +29,219 @@ my.class
 
 ```
 
-my.class scaled:
-
-```{r}
-my.class.scaled <- my.class %>% 
-  mutate_if(is.numeric, scale)
-```
-
-
-
-
-```{r, fig.height=10, fig.width=10}
-# No scale on original data
-
-g1 <- ggRadar(my.class, aes(group = "cluster"), rescale = F, use.label = F) +
-  facet_wrap(~cluster) + labs(title = "No scale , No scale")
-
-g2 <- ggRadar(my.class, aes(group = "cluster"), rescale = T, use.label = F) +
-  facet_wrap(~cluster) + labs(title = "No scale , scale")
-
-g3 <- ggRadar(my.class.scaled, aes(group = "cluster"), rescale = F, use.label = F) +
-  facet_wrap(~cluster) + labs(title = "scale , No scale")
-
-g4 <- ggRadar(my.class.scaled, aes(group = "cluster"), rescale = T, use.label = F) +
-  facet_wrap(~cluster) + labs(title = "scale , scale")
-
-
-plot_grid(g1, g2, g3, g4,
-          ncol = 2,
-          nrow = 2)
-
-```
-
-
-
-
-
-```{r}
-my.class
-
-```
-
-
-```{r}
-ggparcoord(my.class,
-           columns = 3:6,
-           groupColumn = "cluster",
-           showPoints = T)
-
-```
-
-
-
-# biplot
+# 2 EDA
 
 ```{r}
 
 df <- my.class %>% 
-  column_to_rownames(var = "name") %>% 
-  mutate_if(is.numeric, scale)
+  select(-cluster, -name) %>% 
+  pivot_longer(c(1:6), 
+               names_to = "my.variable", 
+               values_to = "my.value")
 
-my.pca <- PCA(df, graph = F,
-              quali.sup = 1)
+# graphs
 
-
-fviz_pca_biplot(my.pca,
-                repel = T,
-                col.ind = df$cluster,
-                palette = "jco",
-                addEllipses = T, 
-                ellipse.type = "confidence",
-                ellipse.level = 0.95,
-                col.var = "black",
-                mean.point = F)
+ggplot(df, aes(x = my.value, fill = my.variable)) +
+  geom_boxplot() +
+  facet_wrap(~my.variable, scale = "free") +
+  theme_minimal() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold")) +
+  labs(title = "Variable Distribution Analysis",
+       subtitle = "by Histogram")
 
 
 ```
-
-
-There are two clusters over here:
-
-* Cluster 1, the observations are having 
 
 ```{r}
 
+df <- my.class %>% 
+  select(-cluster, -name) %>% 
+  mutate_if(is.numeric, scale) %>% 
+  pivot_longer(c(1:6), 
+               names_to = "my.variable", 
+               values_to = "my.value") 
+
+# graphs
+
+ggplot(df, aes(x = my.value, fill = my.variable)) +
+  geom_boxplot() +
+  facet_wrap(~my.variable, scale = "free") +
+  theme_minimal() +
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 45),
+        plot.title = element_text(face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5, face = "bold")) +
+  labs(title = "Variable Distribution Analysis",
+       subtitle = "by Histogram")
+
+
 ```
+
+
+
+
+
+```{r}
+# Radar 1 - original
+
+g1 <- ggRadar(my.class, 
+        aes(group = "cluster"),
+        use.label = F,
+        rescale = F) +
+  facet_wrap(~cluster) + theme_bw() + labs(title = "No Scale")
+
+
+# Radar 2 - scale
+
+my.class.scale <- my.class %>% 
+  mutate_if(is.numeric, scale)
+
+g2 <- ggRadar(my.class.scale, 
+        aes(group = "cluster"),
+        use.label = F,
+        rescale = F) +
+  facet_wrap(~cluster) + labs(title = "Scale") + theme_bw()
+
+# Radar 3 - log some
+
+my.class.log <- my.class %>% 
+  mutate(honesty.score = log(honesty.score + 1),
+         distance.from.home = log(distance.from.home + 1),
+         weight = log(weight))
+
+g3 <- ggRadar(my.class.log, 
+                      aes(group = "cluster"),
+        use.label = F,
+        rescale = F) +
+  facet_wrap(~cluster) + labs(title = "log (distance, honesty, weight)") + theme_bw()
+
+# Radar 4 - log all
+
+my.class.log2 <- my.class %>% 
+  mutate_if(is.numeric, log)
+
+g4 <- ggRadar(my.class.log2, 
+                      aes(group = "cluster"),
+        use.label = F,
+        rescale = F) +
+  facet_wrap(~cluster) + labs(title = "log (All)") + theme_bw()
+
+
+# Radar 5 - log-scale
+
+my.class.logscale <- my.class %>% 
+  mutate(honesty.score = log(honesty.score + 1),
+         distance.from.home = log(distance.from.home + 1),
+         weight = log(weight)) %>% 
+  mutate_if(is.numeric, scale)
+
+g5 <- ggRadar(my.class.logscale, 
+                      aes(group = "cluster"),
+        use.label = F,
+        rescale = F) +
+  facet_wrap(~cluster) + labs(title = "log some + scale") + theme_bw()
+
+
+my.class %>% 
+  group_by(cluster) %>% 
+  summarise_all(mean)
+
+
+```
+
+
+```{r, fig.width=12, fig.height=12}
+plot_grid(g1, g2, g3, g4, g5,
+          nrow = 3,
+          ncol = 2)
+```
+
+# 1 - Case 1: Log + scale then Cluster
+
+
+
+
+```{r}
+
+name <- c("Lucy", "Kar", "Ruby", "Sophie", "Lynda", "Max", "Linda", "Brian", "Brendan", "Cheah")
+cluster <- c(1,1,1,1,1,2,2,2,2,2)
+study.score <- c(4.9, 4.4, 4.7, 5.0, 4.6, 2.3, 2.4, 1.9, 3.0, 2.7)
+exercise.score <- c(20, 25, 30, 40, 32, 89, 79, 91, 78, 85)
+honesty.score <- c(85, 78, 91, 79, 81, 87, 87, 78, 90, 89)
+weekly.pocket.money <- c(550, 2000, 500, 650, 550, 200, 300, 250, 120, 300)
+weight <- c(70, 65, 75, 60, 70, 74, 66, 135, 75, 81)
+
+my.class <- data.frame(name, cluster, study.score, exercise.score, honesty.score, weekly.pocket.money, weight)
+
+my.class <- my.class %>% 
+  mutate(cluster = as.factor(cluster)) 
+
+my.class
+
+```
+
+```{r}
+case1_df <- my.class[, -2] %>% 
+  column_to_rownames(var = "name")
+
+case1_df
+
+```
+
+## 1.1 Log skewed variables 
+
+Recognise outliers in weekly.pocket.money and weight. So I log them.
+
+```{r}
+# logging
+
+case1_df_log <- case1_df %>% 
+  mutate(weekly.pocket.money = log(weekly.pocket.money + 1),  
+         weight = log(weight + 1)) 
+
+
+# scaling
+
+case1_df_logscale <- scale(case1_df_log)
+
+# the df
+
+case1_df_logscale
+
+```
+
+## 1.1 Clustering Tendency Assessment
+
+```{r}
+# Hopkins
+
+set.seed(123)
+hopkins(case1_df_logscale, m = nrow(my.df)-1)
+
+```
+
+
+```{r}
+# Silhouette Method
+
+fviz_nbclust(case1_df_logscale, 
+             FUNcluster = kmeans, 
+             method = "wss")
+
+
+```
+
+```{r}
+fviz_nbclust(case1_df_logscale, FUNcluster = kmeans, method = "silhouette")
+```
+
+
+
+`
+
 
 
 
