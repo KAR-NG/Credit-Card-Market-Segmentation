@@ -33,3 +33,5 @@ Clustering and dimensionality reduction techniques on the Berlin Airbnb data and
 Jenny Listman 2019, *Customer Segmentation / K Means Clustering*, viewed 14 May 2022, <https://www.kaggle.com/code/jennylistman/customer-segmentation-k-means-clustering>
 
 Matt.0 2019, *10 Tips for Choosing the Optimal Number of Clusters*, viewed 12 May 2022, <https://towardsdatascience.com/10-tips-for-choosing-the-optimal-number-of-clusters-277e93d72d92>
+
+https://www.choice.com.au/money/credit-cards-and-loans/credit-cards
