@@ -32,7 +32,7 @@ Kar Ng
 
 ------------------------------------------------------------------------
 
-!()\[<https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic2_thumbnail.png>\]
+![](https://raw.githubusercontent.com/KAR-NG/cc_cluster/main/pic2_thumbnail.png)
 
 ------------------------------------------------------------------------
 
